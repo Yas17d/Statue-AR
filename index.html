@@ -6,13 +6,12 @@
     <title>Patrimoine AR</title>
 
     <script type="importmap">
-      {
+    {
         "imports": {
-          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-          "three/addons/renderers/CSS3DRenderer.js": "https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS3DRenderer.js"
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
         }
-      }
+    }
     </script>
 
     <style>
@@ -96,10 +95,25 @@
             pointer-events: none;
         }
         #loading-bar {
-            height: 6px;
-            width: 0%;
+            height: 6px; width: 0%;
             background: #ff3b30;
             transition: width 0.2s;
+        }
+
+        /* Panneau de debug — visible uniquement en dev */
+        #debug {
+            position: absolute;
+            top: 60px; left: 10px;
+            background: rgba(0,0,0,0.75);
+            color: #0f0;
+            font-size: 11px;
+            font-family: monospace;
+            padding: 8px 10px;
+            border-radius: 8px;
+            z-index: 20;
+            pointer-events: none;
+            max-width: 90vw;
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -107,6 +121,7 @@
 
     <div id="status">Chargement du modèle...</div>
     <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+    <div id="debug">⏳ Initialisation...</div>
 
     <div id="info-popup">
         <div id="popup-text"></div>
@@ -115,26 +130,38 @@
 
     <script type="module">
         import * as THREE from 'three';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { GLTFLoader }  from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-        import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js';
+        import { MindARThree } from
+            'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js';
+
+        // ── Utilitaire debug ──────────────────────────────────────────────────
+        const dbg = document.getElementById('debug');
+        const log = (...args) => {
+            console.log(...args);
+            dbg.innerHTML += '<br>' + args.join(' ');
+        };
 
         // ── Annotations ───────────────────────────────────────────────────────
+        // ⚠️  Les coordonnées x/y/z sont en unités locales du modèle GLB.
+        //     Après le recentrage automatique, (0,0,0) = centre du bounding box.
+        //     Mesure les positions directement dans Blender ou Sketchfab.
         const mesAnnotations = [
             { title: "La Tête",      description: "Détail sculpté de la tête.",   x:  0.00, y:  0.00, z:  0.00 },
-            { title: "Le Drapé",     description: "Tissu sculpté en marbre.",       x: -1.05, y: -3.82, z:  0.14 },
+            { title: "Le Drapé",     description: "Tissu sculpté en marbre.",      x: -1.05, y: -3.82, z:  0.14 },
             { title: "Détail corps", description: "Détail du corps de la statue.", x:  0.01, y: -0.81, z: -0.38 },
-            { title: "Repère A",     description: "À recalibrer.",                  x:  0.00, y: -2.00, z:  0.00 },
+            { title: "Repère A",     description: "À recalibrer.",                 x:  0.00, y: -2.00, z:  0.00 },
             { title: "Le Socle",     description: "Socle de la statue.",           x:  0.56, y: -3.30, z: -0.70 },
-            { title: "Repère B",     description: "À recalibrer.",                  x:  0.00, y: -2.50, z:  0.00 },
+            { title: "Repère B",     description: "À recalibrer.",                 x:  0.00, y: -2.50, z:  0.00 },
         ];
 
         const statusEl  = document.getElementById('status');
         const barEl     = document.getElementById('loading-bar');
         const barWrapEl = document.getElementById('loading-bar-wrap');
 
-        // ── 1. Initialisation de MindAR ───────────────────────────────────────
+        // ── 1. MindAR ─────────────────────────────────────────────────────────
+        log('1. MindAR init...');
         const mindarTarget = new MindARThree({
             container: document.body,
             imageTargetSrc: './targets.mind',
@@ -144,7 +171,10 @@
         });
         const { renderer, scene, camera } = mindarTarget;
 
-        // ── 2. CSS2DRenderer pour les étiquettes ──────────────────────────────
+        // Correction avertissement outputEncoding
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+        // ── 2. CSS2DRenderer ──────────────────────────────────────────────────
         const labelRenderer = new CSS2DRenderer();
         labelRenderer.setSize(window.innerWidth, window.innerHeight);
         labelRenderer.domElement.id = 'label-container';
@@ -156,45 +186,71 @@
         dirLight.position.set(0, 2, 2);
         scene.add(dirLight);
 
-        // ── 4. Gestion de l'Ancre AR ──────────────────────────────────────────
+        // ── 4. Ancre AR ───────────────────────────────────────────────────────
         const anchor = mindarTarget.addAnchor(0);
 
         anchor.onTargetFound = () => {
+            log('✅ Cible détectée !');
             statusEl.style.opacity = '0';
             setTimeout(() => { statusEl.style.display = 'none'; }, 600);
         };
         anchor.onTargetLost = () => {
+            log('❌ Cible perdue');
             statusEl.style.display = 'block';
             statusEl.style.opacity = '1';
             statusEl.textContent   = "Pointez vers la statue...";
         };
 
-        // ── 5. Configuration du chargeur Draco + GLTF ─────────────────────────
-        const dracoLoader = new DRACOLoader();
-        dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
+        // ── 5. Chargement GLB ─────────────────────────────────────────────────
+        log('2. Chargement GLB...');
 
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath(
+            'https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/'
+        );
         const loader = new GLTFLoader();
         loader.setDRACOLoader(dracoLoader);
 
         loader.load(
-            './Statue25.glb', // Fichier de 26 Mo
+            './Statue25.glb',
             (gltf) => {
                 barWrapEl.style.display = 'none';
-                statusEl.textContent    = "Pointez la caméra vers la statue...";
 
                 const model = gltf.scene;
-
                 const box    = new THREE.Box3().setFromObject(model);
                 const center = box.getCenter(new THREE.Vector3());
                 const size   = box.getSize(new THREE.Vector3());
+
+                log(`📦 Taille brute GLB: x=${size.x.toFixed(2)} y=${size.y.toFixed(2)} z=${size.z.toFixed(2)}`);
+
+                // Recentrage
                 model.position.sub(center);
 
+                // ── Échelle ──────────────────────────────────────────────────
+                // 1 unité MindAR = largeur réelle de l'image cible (en mètres).
+                // Exemple : si ton image imprimée fait 20cm → targetWidth = 0.20
+                // Si la statue fait 2m de haut et le modèle 5 unités → scale = 2/5 = 0.4
+                // Commence avec 1.0 / maxDim puis ajuste SCALE_FACTOR selon rendu.
                 const maxDim = Math.max(size.x, size.y, size.z);
-                model.scale.setScalar(1.0 / maxDim);
+                const SCALE_FACTOR = 1.0; // ← ajuste ici (ex: 0.5 = moitié plus petit)
+                const finalScale = SCALE_FACTOR / maxDim;
+                model.scale.setScalar(finalScale);
 
+                log(`📏 maxDim=${maxDim.toFixed(2)} | scale=${finalScale.toFixed(4)}`);
+                log(`✅ Modèle chargé — en attente de scan`);
+
+                statusEl.textContent = "Pointez la caméra vers la statue...";
                 anchor.group.add(model);
 
-                // ── 6. Création des Annotations ───────────────────────────────
+                // Cube de référence rouge au centre — confirme que l'ancre fonctionne
+                // (supprime ces 3 lignes une fois le modèle visible)
+                const cube = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.1, 0.1, 0.1),
+                    new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true })
+                );
+                anchor.group.add(cube);
+
+                // ── 6. Annotations ────────────────────────────────────────────
                 const popup    = document.getElementById('info-popup');
                 const popupTxt = document.getElementById('popup-text');
 
@@ -205,11 +261,14 @@
 
                     div.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        popupTxt.innerHTML = `<strong>${data.title}</strong><br>${data.description}`;
+                        popupTxt.innerHTML =
+                            `<strong>${data.title}</strong><br>${data.description}`;
                         popup.style.display = 'block';
                     });
 
                     const label = new CSS2DObject(div);
+                    // Les coords sont soustraites du centre pour rester
+                    // dans l'espace local recentré du modèle
                     label.position.set(
                         data.x - center.x,
                         data.y - center.y,
@@ -222,11 +281,13 @@
                 if (xhr.lengthComputable) {
                     const pct = Math.round((xhr.loaded / xhr.total) * 100);
                     barEl.style.width    = pct + '%';
-                    statusEl.textContent = `Chargement du modèle... ${pct}%`;
+                    statusEl.textContent = `Chargement... ${pct}%`;
+                    if (pct === 100) log('3. GLB téléchargé, parsing...');
                 }
             },
             (err) => {
                 console.error('Erreur GLB :', err);
+                log('❌ Erreur GLB : ' + err.message);
                 barWrapEl.style.display = 'none';
                 statusEl.style.display  = 'block';
                 statusEl.style.opacity  = '1';
@@ -234,26 +295,27 @@
             }
         );
 
-        // ── 7. Lancement de la caméra ─────────────────────────────────────────
+        // ── 7. Démarrage caméra ───────────────────────────────────────────────
         try {
+            log('4. Démarrage caméra...');
             await mindarTarget.start();
+            log('5. Caméra active ✅');
         } catch (err) {
-            console.warn('Caméra indisponible :', err);
+            log('⚠️ Caméra indisponible (normal sur desktop)');
             statusEl.style.display = 'block';
             statusEl.style.opacity = '1';
-            statusEl.textContent   = 'Caméra non disponible — activez le HTTPS ou testez sur smartphone';
+            statusEl.textContent   = 'Caméra non disponible — testez sur smartphone en HTTPS';
         }
 
-        // ── 8. Boucle d'animation principale ──────────────────────────────────
+        // ── 8. Boucle de rendu ────────────────────────────────────────────────
         renderer.setAnimationLoop(() => {
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
         });
 
-        // ── 9. Redimensionnement de la fenêtre ────────────────────────────────
+        // ── 9. Resize ─────────────────────────────────────────────────────────
         window.addEventListener('resize', () => {
-            const w = window.innerWidth;
-            const h = window.innerHeight;
+            const w = window.innerWidth, h = window.innerHeight;
             camera.aspect = w / h;
             camera.updateProjectionMatrix();
             renderer.setSize(w, h);
