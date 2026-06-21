@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Patrimoine AR</title>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/DRACOLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/renderers/CSS2DRenderer.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+      }
+    </script>
 
     <style>
         html, body {
@@ -111,9 +111,12 @@
         <button onclick="document.getElementById('info-popup').style.display='none'">Fermer</button>
     </div>
 
-    <script>
-        // Tout passe par l'objet global window.THREE présent grâce aux balises du head
-        const THREE = window.THREE;
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js';
+        import { CSS2DRenderer, CSS2DObject } from 'https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS2DRenderer.js';
+        import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js';
 
         // ── Annotations ───────────────────────────────────────────────────────
         const mesAnnotations = [
@@ -130,7 +133,7 @@
         const barWrapEl = document.getElementById('loading-bar-wrap');
 
         // ── 1. Initialisation de MindAR ───────────────────────────────────────
-        const mindarTarget = new window.MINDAR.IMAGE.MindARThree({
+        const mindarTarget = new MindARThree({
             container: document.body,
             imageTargetSrc: './targets.mind',
             uiLoading: "yes",
@@ -139,8 +142,8 @@
         });
         const { renderer, scene, camera } = mindarTarget;
 
-        // ── 2. CSS2DRenderer pour les étiquettes ──────────────────────────────
-        const labelRenderer = new THREE.CSS2DRenderer();
+        // ── 2. CSS2DRenderer pour les annotations ─────────────────────────────
+        const labelRenderer = new CSS2DRenderer();
         labelRenderer.setSize(window.innerWidth, window.innerHeight);
         labelRenderer.domElement.id = 'label-container';
         document.body.appendChild(labelRenderer.domElement);
@@ -164,16 +167,16 @@
             statusEl.textContent   = "Pointez vers la statue...";
         };
 
-        // ── 5. Configuration du chargeur Draco + GLTF ─────────────────────────
-        const dracoLoader = new THREE.DRACOLoader();
-        dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/libs/draco/');
+        // ── 5. Configuration Draco et Chargeur GLTF ───────────────────────────
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
 
-        const loader = new THREE.GLTFLoader();
+        const loader = new GLTFLoader();
         loader.setDRACOLoader(dracoLoader);
 
         loader.load(
-            './Statue2.glb', // modèle de 83Mo
-            function (gltf) {
+            './Statue_1.glb', // Ton fichier de 83Mo
+            (gltf) => {
                 barWrapEl.style.display = 'none';
                 statusEl.textContent    = "Pointez la caméra vers la statue...";
 
@@ -189,22 +192,22 @@
 
                 anchor.group.add(model);
 
-                // ── 6. Création des Annotations ───────────────────────────────
+                // ── 6. Annotations interactives ───────────────────────────────
                 const popup    = document.getElementById('info-popup');
                 const popupTxt = document.getElementById('popup-text');
 
-                mesAnnotations.forEach(function (data) {
+                mesAnnotations.forEach((data) => {
                     const div = document.createElement('div');
                     div.className   = 'annotation-pin';
                     div.textContent = data.title;
 
-                    div.addEventListener('click', function (e) {
+                    div.addEventListener('click', (e) => {
                         e.stopPropagation();
                         popupTxt.innerHTML = `<strong>${data.title}</strong><br>${data.description}`;
                         popup.style.display = 'block';
                     });
 
-                    const label = new THREE.CSS2DObject(div);
+                    const label = new CSS2DObject(div);
                     label.position.set(
                         data.x - center.x,
                         data.y - center.y,
@@ -213,14 +216,14 @@
                     anchor.group.add(label);
                 });
             },
-            function (xhr) {
+            (xhr) => {
                 if (xhr.lengthComputable) {
                     const pct = Math.round((xhr.loaded / xhr.total) * 100);
                     barEl.style.width    = pct + '%';
                     statusEl.textContent = `Chargement du modèle... ${pct}%`;
                 }
             },
-            function (err) {
+            (err) => {
                 console.error('Erreur GLB :', err);
                 barWrapEl.style.display = 'none';
                 statusEl.style.display  = 'block';
@@ -229,26 +232,24 @@
             }
         );
 
-        // ── 7. Lancement de la caméra ─────────────────────────────────────────
-        mindarTarget.start()
-            .then(function() {
-                // Succès
-            })
-            .catch(function(err) {
-                console.warn('Caméra indisponible :', err);
-                statusEl.style.display = 'block';
-                statusEl.style.opacity = '1';
-                statusEl.textContent   = 'Caméra non disponible — testez sur smartphone en HTTPS';
-            });
+        // ── 7. Lancement de l'expérience AR ───────────────────────────────────
+        try {
+            await mindarTarget.start();
+        } catch (err) {
+            console.warn('Caméra indisponible :', err);
+            statusEl.style.display = 'block';
+            statusEl.style.opacity = '1';
+            statusEl.textContent   = 'Caméra non disponible — testez sur smartphone en HTTPS';
+        }
 
-        // ── 8. Boucle d'animation principale ──────────────────────────────────
-        renderer.setAnimationLoop(function () {
+        // ── 8. Boucle de rendu ────────────────────────────────────────────────
+        renderer.setAnimationLoop(() => {
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
         });
 
-        // ── 9. Redimensionnement de la fenêtre ────────────────────────────────
-        window.addEventListener('resize', function () {
+        // ── 9. Gestion du redimensionnement d'écran ───────────────────────────
+        window.addEventListener('resize', () => {
             const w = window.innerWidth;
             const h = window.innerHeight;
             camera.aspect = w / h;
