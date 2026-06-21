@@ -5,8 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Patrimoine AR</title>
 
-    <!-- MindAR UNIQUEMENT en script classique — il expose window.MINDAR et window.THREE -->
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js"></script>
+    <!-- importmap : une seule source de vérité pour THREE et MindAR -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three":              "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/":      "https://unpkg.com/three@0.160.0/examples/jsm/",
+            "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+        }
+    }
+    </script>
 
     <style>
         html, body {
@@ -106,39 +114,22 @@
         <button onclick="document.getElementById('info-popup').style.display='none'">Fermer</button>
     </div>
 
-    <!--
-        TYPE="module" garantit que ce bloc s'exécute APRÈS tous les scripts
-        classiques ci-dessus — THREE est donc déjà défini quand on en a besoin.
-        On importe GLTFLoader, DRACOLoader et CSS2DRenderer depuis le même
-        THREE que MindAR via un shim qui réutilise window.THREE.
-    -->
     <script type="module">
-        // ── Réutilise le THREE global exposé par MindAR ──────────────────────
-        const THREE = window.THREE;
-
-        // ── Imports des addons depuis jsDelivr (même version r128) ───────────
-        // On les charge comme texte et on les eval dans le contexte window.THREE
-        // pour éviter tout conflit de module.
-        await Promise.all([
-            import('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/GLTFLoader.js')
-                .then(m => { THREE.GLTFLoader  = m.GLTFLoader; }),
-            import('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/DRACOLoader.js')
-                .then(m => { THREE.DRACOLoader  = m.DRACOLoader; }),
-            import('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/renderers/CSS2DRenderer.js')
-                .then(m => {
-                    THREE.CSS2DRenderer = m.CSS2DRenderer;
-                    THREE.CSS2DObject   = m.CSS2DObject;
-                }),
-        ]);
+        // Un seul import de THREE — la même instance pour MindAR et les addons
+        import * as THREE from 'three';
+        import { GLTFLoader }      from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader }     from 'three/addons/loaders/DRACOLoader.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        import { MindARThree }     from 'mindar-image-three';
 
         // ── Annotations ───────────────────────────────────────────────────────
         const mesAnnotations = [
-            { title: "La Tête",      description: "Détail sculpté de la tête.",     x:  0.00, y:  0.00, z:  0.00 },
-            { title: "Le Drapé",     description: "Tissu sculpté en marbre.",        x: -1.05, y: -3.82, z:  0.14 },
-            { title: "Détail corps", description: "Détail du corps de la statue.",   x:  0.01, y: -0.81, z: -0.38 },
-            { title: "Repère A",     description: "À recalibrer.",                   x:  0.00, y: -2.00, z:  0.00 },
-            { title: "Le Socle",     description: "Socle de la statue.",             x:  0.56, y: -3.30, z: -0.70 },
-            { title: "Repère B",     description: "À recalibrer.",                   x:  0.00, y: -2.50, z:  0.00 },
+            { title: "La Tête",      description: "Détail sculpté de la tête.",    x:  0.00, y:  0.00, z:  0.00 },
+            { title: "Le Drapé",     description: "Tissu sculpté en marbre.",       x: -1.05, y: -3.82, z:  0.14 },
+            { title: "Détail corps", description: "Détail du corps de la statue.",  x:  0.01, y: -0.81, z: -0.38 },
+            { title: "Repère A",     description: "À recalibrer.",                  x:  0.00, y: -2.00, z:  0.00 },
+            { title: "Le Socle",     description: "Socle de la statue.",            x:  0.56, y: -3.30, z: -0.70 },
+            { title: "Repère B",     description: "À recalibrer.",                  x:  0.00, y: -2.50, z:  0.00 },
         ];
 
         const statusEl  = document.getElementById('status');
@@ -146,7 +137,7 @@
         const barWrapEl = document.getElementById('loading-bar-wrap');
 
         // ── 1. MindAR ─────────────────────────────────────────────────────────
-        const mindarTarget = new MINDAR.IMAGE.MindARThree({
+        const mindarTarget = new MindARThree({
             container: document.body,
             imageTargetSrc: './targets.mind',
             uiLoading: "yes",
@@ -156,7 +147,7 @@
         const { renderer, scene, camera } = mindarTarget;
 
         // ── 2. CSS2DRenderer ──────────────────────────────────────────────────
-        const labelRenderer = new THREE.CSS2DRenderer();
+        const labelRenderer = new CSS2DRenderer();
         labelRenderer.setSize(window.innerWidth, window.innerHeight);
         labelRenderer.domElement.id = 'label-container';
         document.body.appendChild(labelRenderer.domElement);
@@ -175,18 +166,18 @@
             setTimeout(() => { statusEl.style.display = 'none'; }, 600);
         };
         anchor.onTargetLost = () => {
-            statusEl.style.display  = 'block';
-            statusEl.style.opacity  = '1';
-            statusEl.textContent    = "Pointez vers la statue...";
+            statusEl.style.display = 'block';
+            statusEl.style.opacity = '1';
+            statusEl.textContent   = "Pointez vers la statue...";
         };
 
         // ── 5. Chargement GLB avec Draco ──────────────────────────────────────
-        const dracoLoader = new THREE.DRACOLoader();
+        const dracoLoader = new DRACOLoader();
         dracoLoader.setDecoderPath(
-            'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/'
+            'https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/'
         );
 
-        const loader = new THREE.GLTFLoader();
+        const loader = new GLTFLoader();
         loader.setDRACOLoader(dracoLoader);
 
         loader.load(
@@ -223,7 +214,7 @@
                         popup.style.display = 'block';
                     });
 
-                    const label = new THREE.CSS2DObject(div);
+                    const label = new CSS2DObject(div);
                     label.position.set(
                         data.x - center.x,
                         data.y - center.y,
@@ -253,9 +244,9 @@
             await mindarTarget.start();
         } catch (err) {
             console.warn('Caméra indisponible :', err);
-            statusEl.style.display  = 'block';
-            statusEl.style.opacity  = '1';
-            statusEl.textContent    = 'Caméra non disponible — testez sur smartphone en HTTPS';
+            statusEl.style.display = 'block';
+            statusEl.style.opacity = '1';
+            statusEl.textContent   = 'Caméra non disponible — testez sur smartphone en HTTPS';
         }
 
         // ── 8. Boucle de rendu ────────────────────────────────────────────────
