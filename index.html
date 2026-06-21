@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Patrimoine AR</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AR minimal</title>
     <script type="importmap">
     {
         "imports": {
@@ -13,333 +12,61 @@
         }
     }
     </script>
-
     <style>
-        html, body {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            overflow: hidden;
-            font-family: sans-serif;
-        }
-        #label-container {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-        }
-        .annotation-pin {
-            background: #ff3b30;
-            color: white;
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-            border: 2px solid white;
-            white-space: nowrap;
-            pointer-events: auto;
-            touch-action: manipulation;
-            user-select: none;
-        }
-        #info-popup {
-            display: none;
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
+        body { margin: 0; }
+        #msg {
+            position: fixed; top: 10px; left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.85);
-            color: white;
-            padding: 16px 20px;
-            border-radius: 14px;
-            max-width: 80vw;
-            font-size: 15px;
-            text-align: center;
-            z-index: 10;
-            pointer-events: auto;
-        }
-        #info-popup button {
-            margin-top: 10px;
-            background: white;
-            color: black;
-            border: none;
-            border-radius: 8px;
-            padding: 6px 14px;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        #status {
-            position: absolute;
-            top: 16px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.6);
-            color: white;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            pointer-events: none;
-            z-index: 10;
-            transition: opacity 0.5s;
-        }
-        #loading-bar-wrap {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 200px;
-            background: rgba(0,0,0,0.4);
-            border-radius: 10px;
-            overflow: hidden;
-            z-index: 10;
-            pointer-events: none;
-        }
-        #loading-bar {
-            height: 6px; width: 0%;
-            background: #ff3b30;
-            transition: width 0.2s;
-        }
-
-        /* Panneau de debug — visible uniquement en dev */
-        #debug {
-            position: absolute;
-            top: 60px; left: 10px;
-            background: rgba(0,0,0,0.75);
-            color: #0f0;
-            font-size: 11px;
-            font-family: monospace;
-            padding: 8px 10px;
-            border-radius: 8px;
-            z-index: 20;
-            pointer-events: none;
-            max-width: 90vw;
-            line-height: 1.6;
+            background: rgba(0,0,0,0.7);
+            color: white; padding: 8px 16px;
+            border-radius: 20px; font-family: sans-serif;
+            font-size: 14px; z-index: 99;
         }
     </style>
 </head>
 <body>
-
-    <div id="status">Chargement du modèle...</div>
-    <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
-    <div id="debug">⏳ Initialisation...</div>
-
-    <div id="info-popup">
-        <div id="popup-text"></div>
-        <button onclick="document.getElementById('info-popup').style.display='none'">Fermer</button>
-    </div>
-
+    <div id="msg">Initialisation...</div>
     <script type="module">
         import * as THREE from 'three';
-        import { GLTFLoader }  from 'three/addons/loaders/GLTFLoader.js';
-        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { MindARThree } from
             'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js';
 
-        // ── Utilitaire debug ──────────────────────────────────────────────────
-        const dbg = document.getElementById('debug');
-        const log = (...args) => {
-            console.log(...args);
-            dbg.innerHTML += '<br>' + args.join(' ');
-        };
+        const msg = document.getElementById('msg');
 
-        // ── Annotations ───────────────────────────────────────────────────────
-        // ⚠️  Les coordonnées x/y/z sont en unités locales du modèle GLB.
-        //     Après le recentrage automatique, (0,0,0) = centre du bounding box.
-        //     Mesure les positions directement dans Blender ou Sketchfab.
-        const mesAnnotations = [
-            { title: "La Tête",      description: "Détail sculpté de la tête.",   x:  0.00, y:  0.00, z:  0.00 },
-            { title: "Le Drapé",     description: "Tissu sculpté en marbre.",      x: -1.05, y: -3.82, z:  0.14 },
-            { title: "Détail corps", description: "Détail du corps de la statue.", x:  0.01, y: -0.81, z: -0.38 },
-            { title: "Repère A",     description: "À recalibrer.",                 x:  0.00, y: -2.00, z:  0.00 },
-            { title: "Le Socle",     description: "Socle de la statue.",           x:  0.56, y: -3.30, z: -0.70 },
-            { title: "Repère B",     description: "À recalibrer.",                 x:  0.00, y: -2.50, z:  0.00 },
-        ];
-
-        const statusEl  = document.getElementById('status');
-        const barEl     = document.getElementById('loading-bar');
-        const barWrapEl = document.getElementById('loading-bar-wrap');
-
-        // ── 1. MindAR ─────────────────────────────────────────────────────────
-        log('1. MindAR init...');
+        // ── Utilise l'image de démo officielle MindAR ─────────────────────────
+        // Si un cube apparaît sur cette carte → ton rendu fonctionne
+        // Pointe la caméra vers : https://hiukim.github.io/mind-ar-js/examples/image-tracking/assets/card-example/card.png
         const mindarTarget = new MindARThree({
             container: document.body,
-            imageTargetSrc: './targets.mind',
-            uiLoading: "yes",
-            uiScanning: "yes",
-            uiError: "yes",
+            imageTargetSrc:
+                'https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.mind',
         });
-        const { renderer, scene, camera } = mindarTarget;
 
-        // Correction avertissement outputEncoding
+        const { renderer, scene, camera } = mindarTarget;
         renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-        // ── 2. CSS2DRenderer ──────────────────────────────────────────────────
-        const labelRenderer = new CSS2DRenderer();
-        labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        labelRenderer.domElement.id = 'label-container';
-        document.body.appendChild(labelRenderer.domElement);
-
-        // ── 3. Lumières ───────────────────────────────────────────────────────
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-        dirLight.position.set(0, 2, 2);
-        scene.add(dirLight);
-
-        // ── 4. Ancre AR ───────────────────────────────────────────────────────
         const anchor = mindarTarget.addAnchor(0);
 
-
-        // ── TEST VISUEL — remplace temporairement la statue ──────────────────
-// Si tu vois ces formes après scan → le tracking fonctionne, problème d'échelle
-// Si tu ne vois RIEN → problème de targets.mind ou de rendu
-
-// Plan blanc au centre de l'ancre (1x1 unité MindAR)
-const planeMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 1),
-    new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide })
-);
-anchor.group.add(planeMesh);
-
-// Cube rouge au-dessus
-const cubeMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.2, 0.2, 0.2),
-    new THREE.MeshBasicMaterial({ color: 0xff0000 })
-);
-cubeMesh.position.set(0, 0.3, 0);
-anchor.group.add(cubeMesh);
-// ── FIN TEST ──────────────────────────────────────────────────────────
-        anchor.onTargetFound = () => {
-            log('✅ Cible détectée !');
-            statusEl.style.opacity = '0';
-            setTimeout(() => { statusEl.style.display = 'none'; }, 600);
-        };
-        anchor.onTargetLost = () => {
-            log('❌ Cible perdue');
-            statusEl.style.display = 'block';
-            statusEl.style.opacity = '1';
-            statusEl.textContent   = "Pointez vers la statue...";
-        };
-
-        // ── 5. Chargement GLB ─────────────────────────────────────────────────
-        log('2. Chargement GLB...');
-
-        const dracoLoader = new DRACOLoader();
-        dracoLoader.setDecoderPath(
-            'https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/'
+        // Cube basique — aucune dépendance externe
+        const cube = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, 0.5, 0.5),
+            new THREE.MeshNormalMaterial()
         );
-        const loader = new GLTFLoader();
-        loader.setDRACOLoader(dracoLoader);
+        anchor.group.add(cube);
 
-        loader.load(
-            './Statue25.glb',
-            (gltf) => {
-                barWrapEl.style.display = 'none';
+        anchor.onTargetFound = () => { msg.textContent = '✅ Cible trouvée !'; };
+        anchor.onTargetLost  = () => { msg.textContent = '🔍 Cherche la cible...'; };
 
-                const model = gltf.scene;
-                const box    = new THREE.Box3().setFromObject(model);
-                const center = box.getCenter(new THREE.Vector3());
-                const size   = box.getSize(new THREE.Vector3());
-
-                log(`📦 Taille brute GLB: x=${size.x.toFixed(2)} y=${size.y.toFixed(2)} z=${size.z.toFixed(2)}`);
-
-                // Recentrage
-                model.position.sub(center);
-
-                // ── Échelle ──────────────────────────────────────────────────
-                // 1 unité MindAR = largeur réelle de l'image cible (en mètres).
-                // Exemple : si ton image imprimée fait 20cm → targetWidth = 0.20
-                // Si la statue fait 2m de haut et le modèle 5 unités → scale = 2/5 = 0.4
-                // Commence avec 1.0 / maxDim puis ajuste SCALE_FACTOR selon rendu.
-                const maxDim = Math.max(size.x, size.y, size.z);
-                const SCALE_FACTOR = 1.0; // ← ajuste ici (ex: 0.5 = moitié plus petit)
-                const finalScale = SCALE_FACTOR / maxDim;
-                model.scale.setScalar(finalScale);
-
-                log(`📏 maxDim=${maxDim.toFixed(2)} | scale=${finalScale.toFixed(4)}`);
-                log(`✅ Modèle chargé — en attente de scan`);
-
-                statusEl.textContent = "Pointez la caméra vers la statue...";
-                anchor.group.add(model);
-
-                // Cube de référence rouge au centre — confirme que l'ancre fonctionne
-                // (supprime ces 3 lignes une fois le modèle visible)
-                const cube = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.1, 0.1, 0.1),
-                    new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true })
-                );
-                anchor.group.add(cube);
-
-                // ── 6. Annotations ────────────────────────────────────────────
-                const popup    = document.getElementById('info-popup');
-                const popupTxt = document.getElementById('popup-text');
-
-                mesAnnotations.forEach((data) => {
-                    const div = document.createElement('div');
-                    div.className   = 'annotation-pin';
-                    div.textContent = data.title;
-
-                    div.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        popupTxt.innerHTML =
-                            `<strong>${data.title}</strong><br>${data.description}`;
-                        popup.style.display = 'block';
-                    });
-
-                    const label = new CSS2DObject(div);
-                    // Les coords sont soustraites du centre pour rester
-                    // dans l'espace local recentré du modèle
-                    label.position.set(
-                        data.x - center.x,
-                        data.y - center.y,
-                        data.z - center.z
-                    );
-                    anchor.group.add(label);
-                });
-            },
-            (xhr) => {
-                if (xhr.lengthComputable) {
-                    const pct = Math.round((xhr.loaded / xhr.total) * 100);
-                    barEl.style.width    = pct + '%';
-                    statusEl.textContent = `Chargement... ${pct}%`;
-                    if (pct === 100) log('3. GLB téléchargé, parsing...');
-                }
-            },
-            (err) => {
-                console.error('Erreur GLB :', err);
-                log('❌ Erreur GLB : ' + err.message);
-                barWrapEl.style.display = 'none';
-                statusEl.style.display  = 'block';
-                statusEl.style.opacity  = '1';
-                statusEl.textContent    = 'Erreur chargement modèle 3D';
-            }
-        );
-
-        // ── 7. Démarrage caméra ───────────────────────────────────────────────
         try {
-            log('4. Démarrage caméra...');
+            msg.textContent = 'Démarrage caméra...';
             await mindarTarget.start();
-            log('5. Caméra active ✅');
-        } catch (err) {
-            log('⚠️ Caméra indisponible (normal sur desktop)');
-            statusEl.style.display = 'block';
-            statusEl.style.opacity = '1';
-            statusEl.textContent   = 'Caméra non disponible — testez sur smartphone en HTTPS';
+            msg.textContent = '🔍 Pointe vers la carte de démo';
+        } catch(e) {
+            msg.textContent = '❌ Caméra indisponible — HTTPS requis';
         }
 
-        // ── 8. Boucle de rendu ────────────────────────────────────────────────
         renderer.setAnimationLoop(() => {
             renderer.render(scene, camera);
-            labelRenderer.render(scene, camera);
-        });
-
-        // ── 9. Resize ─────────────────────────────────────────────────────────
-        window.addEventListener('resize', () => {
-            const w = window.innerWidth, h = window.innerHeight;
-            camera.aspect = w / h;
-            camera.updateProjectionMatrix();
-            renderer.setSize(w, h);
-            labelRenderer.setSize(w, h);
         });
     </script>
 </body>
