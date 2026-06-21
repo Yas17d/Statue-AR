@@ -8,7 +8,8 @@
     <script type="importmap">
       {
         "imports": {
-          "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
         }
       }
     </script>
@@ -113,9 +114,9 @@
 
     <script type="module">
         import * as THREE from 'three';
-        import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-        import { DRACOLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js';
-        import { CSS2DRenderer, CSS2DObject } from 'https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS2DRenderer.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js';
 
         // ── Annotations ───────────────────────────────────────────────────────
@@ -142,7 +143,7 @@
         });
         const { renderer, scene, camera } = mindarTarget;
 
-        // ── 2. CSS2DRenderer pour les annotations ─────────────────────────────
+        // ── 2. CSS2DRenderer pour les étiquettes ──────────────────────────────
         const labelRenderer = new CSS2DRenderer();
         labelRenderer.setSize(window.innerWidth, window.innerHeight);
         labelRenderer.domElement.id = 'label-container';
@@ -167,7 +168,7 @@
             statusEl.textContent   = "Pointez vers la statue...";
         };
 
-        // ── 5. Configuration Draco et Chargeur GLTF ───────────────────────────
+        // ── 5. Configuration du chargeur Draco + GLTF ─────────────────────────
         const dracoLoader = new DRACOLoader();
         dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
 
@@ -192,7 +193,7 @@
 
                 anchor.group.add(model);
 
-                // ── 6. Annotations interactives ───────────────────────────────
+                // ── 6. Création des Annotations ───────────────────────────────
                 const popup    = document.getElementById('info-popup');
                 const popupTxt = document.getElementById('popup-text');
 
@@ -232,23 +233,23 @@
             }
         );
 
-        // ── 7. Lancement de l'expérience AR ───────────────────────────────────
+        // ── 7. Lancement de la caméra ─────────────────────────────────────────
         try {
             await mindarTarget.start();
         } catch (err) {
             console.warn('Caméra indisponible :', err);
             statusEl.style.display = 'block';
             statusEl.style.opacity = '1';
-            statusEl.textContent   = 'Caméra non disponible — testez sur smartphone en HTTPS';
+            statusEl.textContent   = 'Caméra non disponible — activez le HTTPS ou testez sur smartphone';
         }
 
-        // ── 8. Boucle de rendu ────────────────────────────────────────────────
+        // ── 8. Boucle d'animation principale ──────────────────────────────────
         renderer.setAnimationLoop(() => {
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
         });
 
-        // ── 9. Gestion du redimensionnement d'écran ───────────────────────────
+        // ── 9. Redimensionnement de la fenêtre ────────────────────────────────
         window.addEventListener('resize', () => {
             const w = window.innerWidth;
             const h = window.innerHeight;
