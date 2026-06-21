@@ -4,16 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Patrimoine AR</title>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js"></script>
 
     <style>
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; }
-        
-        /* Style des boutons d'annotation HTML rouges */
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        /* CORRECTIF BUG 2 : le conteneur labelRenderer doit laisser passer
+           les events par défaut, sauf sur les pins eux-mêmes */
+        #label-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; /* transparent pour les touches */
+        }
+
         .annotation-pin {
             background: #ff3b30;
             color: white;
@@ -25,86 +38,216 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.4);
             border: 2px solid white;
             white-space: nowrap;
+            pointer-events: auto; /* réactiver uniquement sur les pins */
+            touch-action: manipulation; /* fix clic sur iOS */
+            user-select: none;
+        }
+
+        /* Popup d'info */
+        #info-popup {
+            display: none;
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 14px;
+            max-width: 80vw;
+            font-size: 15px;
+            text-align: center;
+            z-index: 10;
+            pointer-events: auto;
+        }
+        #info-popup button {
+            margin-top: 10px;
+            background: white;
+            color: black;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        /* Indicateur de tracking */
+        #status {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 10;
+            transition: opacity 0.5s;
         }
     </style>
 </head>
 <body>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            // 1. Initialisation de MindAR
-            const mindartarget = new MINDAR.IMAGE.MindARThree({
-                container: document.body,
-                imageTargetSrc: './targets.mind'
-            });
-            const {renderer, scene, camera} = mindartarget;
+    <div id="status">Pointez la caméra vers la statue...</div>
 
-            // 2. Initialisation du Renderer pour les étiquettes cliquables
+    <div id="info-popup">
+        <div id="popup-text"></div>
+        <button onclick="document.getElementById('info-popup').style.display='none'">Fermer</button>
+    </div>
+
+    <script>
+        // ─── Contenu des annotations ──────────────────────────────────────────
+        // Modifie ici les descriptions de chaque point
+        const mesAnnotations = [
+            {
+                title: "La Tête",
+                description: "Détail sculpté de la tête. Époque : ...",
+                // Coordonnées dans l'espace LOCAL du modèle 3D
+                x: 0.00, y: 0.00, z: 0.00
+            },
+            {
+                title: "Le Drapé",
+                description: "Tissu sculpté en marbre, technique du ...",
+                x: -1.05, y: -3.82, z: 0.14
+            },
+            {
+                title: "Détail corps",
+                description: "...",
+                x: 0.01, y: -0.81, z: -0.38
+            },
+            // ⚠️  Points 4 et 6 avaient des coordonnées aberrantes (z=9.36).
+            //     Remplace ces valeurs par les vraies positions sur le modèle.
+            {
+                title: "Repère A",
+                description: "...",
+                x: 0.0, y: -2.0, z: 0.0  // ← À RECALIBRER
+            },
+            {
+                title: "Le Socle",
+                description: "Socle en pierre de ...",
+                x: 0.56, y: -3.30, z: -0.70
+            },
+            {
+                title: "Repère B",
+                description: "...",
+                x: 0.0, y: -2.5, z: 0.0  // ← À RECALIBRER
+            }
+        ];
+
+        document.addEventListener("DOMContentLoaded", async () => {
+
+            // ── 1. MindAR ────────────────────────────────────────────────────
+            const mindarTarget = new MINDAR.IMAGE.MindARThree({
+                container: document.body,
+                imageTargetSrc: './targets.mind',
+                uiLoading: "yes",
+                uiScanning: "yes",
+                uiError: "yes",
+            });
+            const { renderer, scene, camera } = mindarTarget;
+
+            // ── 2. CSS2DRenderer (labels HTML) ───────────────────────────────
             const labelRenderer = new THREE.CSS2DRenderer();
             labelRenderer.setSize(window.innerWidth, window.innerHeight);
-            labelRenderer.domElement.style.position = 'absolute';
-            labelRenderer.domElement.style.top = '0px';
-            labelRenderer.domElement.style.pointerEvents = 'none';
-            document.body.appendChild(labelRenderer.domElement);
+            // On crée le conteneur manuellement pour mieux contrôler les events
+            const labelContainer = labelRenderer.domElement;
+            labelContainer.id = 'label-container';
+            document.body.appendChild(labelContainer);
 
-            // 3. Lumières
+            // ── 3. Lumières ───────────────────────────────────────────────────
             scene.add(new THREE.AmbientLight(0xffffff, 0.8));
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
             dirLight.position.set(0, 2, 2);
             scene.add(dirLight);
 
-            // 4. Liaison avec l'image cible
-            const anchor = mindartarget.addAnchor(0);
+            // ── 4. Ancre MindAR ───────────────────────────────────────────────
+            const anchor = mindarTarget.addAnchor(0);
 
-            // 5. Chargement de ta statue .glb
+            // Indicateur de tracking trouvé / perdu
+            const statusEl = document.getElementById('status');
+            anchor.onTargetFound = () => {
+                statusEl.textContent = "Statue détectée ✓";
+                statusEl.style.opacity = '0';
+                setTimeout(() => statusEl.style.display = 'none', 600);
+            };
+            anchor.onTargetLost = () => {
+                statusEl.style.display = 'block';
+                statusEl.style.opacity = '1';
+                statusEl.textContent = "Pointez vers la statue...";
+            };
+
+            // ── 5. Chargement du modèle GLB ───────────────────────────────────
             const loader = new THREE.GLTFLoader();
-            loader.load('./Statue.glb', (gltf) => {
-                const model = gltf.scene;
-                
-                // TAILLE ET POSITION DE LA STATUE (Recentrage automatique basé sur le Point 1)
-                model.scale.set(1.0, 1.0, 1.0);
-                model.position.set(-0.019, -4.702, 10.674); 
-                
-                anchor.group.add(model);
+            loader.load(
+                './Statue.glb',
+                (gltf) => {
+                    const model = gltf.scene;
 
-                // 6. Tes annotations au complet (Les 6 points Metashape recalibrés)
-                const mesAnnotations = [
-                    { title: "🗿 Point 1 : La Tête", x: 0.00, y: 0.00, z: 0.00 },
-                    { title: "🔍 Point 2 : Le Drapé", x: -1.05, y: -3.82, z: 0.14 },
-                    { title: "📜 Point 3 : Détail Corps", x: 0.01, y: -0.81, z: -0.38 },
-                    { title: "📍 Point 4 : Repère A", x: -4.84, y: -3.35, z: 9.36 },
-                    { title: "🏺 Point 5 : Le Socle", x: 0.56, y: -3.30, z: -0.70 },
-                    { title: "📍 Point 6 : Repère B", x: -4.81, y: -4.15, z: 9.33 }
-                ];
+                    // Recentrage automatique sur le bounding box du modèle
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    model.position.sub(center); // centre le modèle à (0,0,0)
 
-                // Création des boutons
-                mesAnnotations.forEach(data => {
-                    const div = document.createElement('div');
-                    div.className = 'annotation-pin';
-                    div.textContent = data.title;
-                    div.style.pointerEvents = 'auto';
-                    
-                    div.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        alert(`Infos : ${data.title}`);
+                    // Échelle : ajuste pour que la statue fasse ~1 unité MindAR de haut.
+                    // 1 unité MindAR ≈ largeur de l'image cible en mètres.
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const targetSize = 1.0; // ajuste selon la taille réelle de ta cible
+                    model.scale.setScalar(targetSize / maxDim);
+
+                    anchor.group.add(model);
+
+                    // ── 6. Annotations ──────────────────────────────────────
+                    const popup = document.getElementById('info-popup');
+                    const popupText = document.getElementById('popup-text');
+
+                    mesAnnotations.forEach((data) => {
+                        const div = document.createElement('div');
+                        div.className = 'annotation-pin';
+                        div.textContent = data.title;
+
+                        div.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            popupText.innerHTML = `<strong>${data.title}</strong><br>${data.description}`;
+                            popup.style.display = 'block';
+                        });
+
+                        const labelObject = new THREE.CSS2DObject(div);
+                        // Les coords sont dans l'espace LOCAL du modèle,
+                        // avant le recentrage — on soustrait le centre calculé.
+                        labelObject.position.set(
+                            data.x - center.x,
+                            data.y - center.y,
+                            data.z - center.z
+                        );
+                        anchor.group.add(labelObject);
                     });
+                },
+                undefined,
+                (err) => console.error('Erreur GLB :', err)
+            );
 
-                    const labelObject = new THREE.CSS2DObject(div);
-                    labelObject.position.set(data.x, data.y, data.z);
-                    anchor.group.add(labelObject);
-                });
-            });
+            // ── 7. Démarrage ──────────────────────────────────────────────────
+            await mindarTarget.start();
 
-            // 7. Démarrage de la caméra
-            await mindartarget.start();
-            
+            // ── 8. Boucle de rendu ────────────────────────────────────────────
             renderer.setAnimationLoop(() => {
                 renderer.render(scene, camera);
                 labelRenderer.render(scene, camera);
             });
 
+            // ── 9. CORRECTIF BUG 3 : resize complet ──────────────────────────
             window.addEventListener('resize', () => {
-                labelRenderer.setSize(window.innerWidth, window.innerHeight);
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+
+                renderer.setSize(w, h);
+                labelRenderer.setSize(w, h);
             });
         });
     </script>
