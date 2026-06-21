@@ -58,25 +58,23 @@
 
             // 5. Chargement de ta statue .glb
             const loader = new THREE.GLTFLoader();
-            loader.load('./statue.glb', (gltf) => {
+            loader.load('./Statue.glb', (gltf) => {
                 const model = gltf.scene;
                 
-                // TAILLE ET POSITION DE LA STATUE (Modifiable lors de tes tests)
+                // TAILLE ET POSITION DE LA STATUE (Recentrage automatique basé sur le Point 1)
                 model.scale.set(1.0, 1.0, 1.0);
-                model.position.set(0, 0, 0); 
+                model.position.set(-0.019, -4.702, 10.674); 
                 
                 anchor.group.add(model);
 
-                // 6. annotations calculées à partir de ton tableau Metashape
+                // 6. Tes annotations au complet (Les 6 points Metashape recalibrés)
                 const mesAnnotations = [
-                    { title: "🗿 Point 1 : La Tête (Réf)", x: 0.00, y: 0.00, z: 0.00 },
-                    { title: "🔍 Point 2 : Le Drapé",       x: -1.05, y: -3.82, z: 0.14 },
-                    { title: "📜 Point 3 : Détail Corps",   x: 0.01, y: -0.81, z: -0.38 },
-                    { title: "🏺 Point 5 : Le Socle",       x: 0.57, y: -3.30, z: -0.70 },
-                    
-                    // Attention : les points 4 et 6 sont très éloignés dans ton scan Metashape
-                    { title: "📍 Point 4 : Hors-champ A",   x: -4.84, y: -3.35, z: 9.36 },
-                    { title: "📍 Point 6 : Hors-champ B",   x: -4.81, y: -4.15, z: 9.33 }
+                    { title: "🗿 Point 1 : La Tête", x: 0.00, y: 0.00, z: 0.00 },
+                    { title: "🔍 Point 2 : Le Drapé", x: -1.05, y: -3.82, z: 0.14 },
+                    { title: "📜 Point 3 : Détail Corps", x: 0.01, y: -0.81, z: -0.38 },
+                    { title: "📍 Point 4 : Repère A", x: -4.84, y: -3.35, z: 9.36 },
+                    { title: "🏺 Point 5 : Le Socle", x: 0.56, y: -3.30, z: -0.70 },
+                    { title: "📍 Point 6 : Repère B", x: -4.81, y: -4.15, z: 9.33 }
                 ];
 
                 // Création des boutons
