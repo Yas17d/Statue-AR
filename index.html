@@ -51,6 +51,11 @@
             container: document.querySelector('#ar-container'),
             imageTargetSrc:
                 'https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.mind',
+            uiScanning: "yes",
+            filterMinCF: 0.001,
+            filterBeta: 0.01,
+            missTolerance: 10,
+            warmupTolerance: 5,
         });
 
         const { renderer, scene, camera } = mindarTarget;
