@@ -189,6 +189,26 @@
         // ── 4. Ancre AR ───────────────────────────────────────────────────────
         const anchor = mindarTarget.addAnchor(0);
 
+
+        // ── TEST VISUEL — remplace temporairement la statue ──────────────────
+// Si tu vois ces formes après scan → le tracking fonctionne, problème d'échelle
+// Si tu ne vois RIEN → problème de targets.mind ou de rendu
+
+// Plan blanc au centre de l'ancre (1x1 unité MindAR)
+const planeMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide })
+);
+anchor.group.add(planeMesh);
+
+// Cube rouge au-dessus
+const cubeMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.2, 0.2, 0.2),
+    new THREE.MeshBasicMaterial({ color: 0xff0000 })
+);
+cubeMesh.position.set(0, 0.3, 0);
+anchor.group.add(cubeMesh);
+// ── FIN TEST ──────────────────────────────────────────────────────────
         anchor.onTargetFound = () => {
             log('✅ Cible détectée !');
             statusEl.style.opacity = '0';
