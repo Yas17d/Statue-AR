@@ -5,17 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Patrimoine AR</title>
 
-    <!-- importmap : une seule source de vérité pour THREE et MindAR -->
-    <script type="importmap">
-    {
-        "imports": {
-            "three":              "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/":      "https://unpkg.com/three@0.160.0/examples/jsm/",
-            "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
-        }
-    }
-    </script>
-
     <style>
         html, body {
             margin: 0; padding: 0;
@@ -115,21 +104,29 @@
     </div>
 
     <script type="module">
-        // Un seul import de THREE — la même instance pour MindAR et les addons
-        import * as THREE from 'three';
-        import { GLTFLoader }      from 'three/addons/loaders/GLTFLoader.js';
-        import { DRACOLoader }     from 'three/addons/loaders/DRACOLoader.js';
-        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-        import { MindARThree }     from 'mindar-image-three';
+        // ── Imports directs par URL complète — aucun importmap nécessaire ─────
+        import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+
+        import { GLTFLoader } from
+            'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+
+        import { DRACOLoader } from
+            'https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js';
+
+        import { CSS2DRenderer, CSS2DObject } from
+            'https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS2DRenderer.js';
+
+        import { MindARThree } from
+            'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js';
 
         // ── Annotations ───────────────────────────────────────────────────────
         const mesAnnotations = [
-            { title: "La Tête",      description: "Détail sculpté de la tête.",    x:  0.00, y:  0.00, z:  0.00 },
-            { title: "Le Drapé",     description: "Tissu sculpté en marbre.",       x: -1.05, y: -3.82, z:  0.14 },
-            { title: "Détail corps", description: "Détail du corps de la statue.",  x:  0.01, y: -0.81, z: -0.38 },
-            { title: "Repère A",     description: "À recalibrer.",                  x:  0.00, y: -2.00, z:  0.00 },
-            { title: "Le Socle",     description: "Socle de la statue.",            x:  0.56, y: -3.30, z: -0.70 },
-            { title: "Repère B",     description: "À recalibrer.",                  x:  0.00, y: -2.50, z:  0.00 },
+            { title: "La Tête",      description: "Détail sculpté de la tête.",   x:  0.00, y:  0.00, z:  0.00 },
+            { title: "Le Drapé",     description: "Tissu sculpté en marbre.",      x: -1.05, y: -3.82, z:  0.14 },
+            { title: "Détail corps", description: "Détail du corps de la statue.", x:  0.01, y: -0.81, z: -0.38 },
+            { title: "Repère A",     description: "À recalibrer.",                 x:  0.00, y: -2.00, z:  0.00 },
+            { title: "Le Socle",     description: "Socle de la statue.",           x:  0.56, y: -3.30, z: -0.70 },
+            { title: "Repère B",     description: "À recalibrer.",                 x:  0.00, y: -2.50, z:  0.00 },
         ];
 
         const statusEl  = document.getElementById('status');
