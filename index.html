@@ -5,13 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Patrimoine AR</title>
 
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-        }
-      }
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
 
     <style>
         html, body {
@@ -112,19 +106,21 @@
     </div>
 
     <script type="module">
-        import * as THREE from 'three';
+        // On récupère l'instance globale de THREE créée par MindAR pour éviter tout conflit
+        const THREE = window.THREE;
 
-        import { GLTFLoader } from
-            'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-
-        import { DRACOLoader } from
-            'https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js';
-
-        import { CSS2DRenderer, CSS2DObject } from
-            'https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS2DRenderer.js';
-
-        import { MindARThree } from
-            'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js';
+        // 2. Importation dynamique des extensions nécessaires (compatibles avec la version r125 intégrée à MindAR)
+        await Promise.all([
+            import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')
+                .then(m => { THREE.GLTFLoader = m.GLTFLoader; }),
+            import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js')
+                .then(m => { THREE.DRACOLoader = m.DRACOLoader; }),
+            import('https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS2DRenderer.js')
+                .then(m => {
+                    THREE.CSS2DRenderer = m.CSS2DRenderer;
+                    THREE.CSS2DObject   = m.CSS2DObject;
+                })
+        ]);
 
         // ── Annotations ───────────────────────────────────────────────────────
         const mesAnnotations = [
@@ -140,8 +136,8 @@
         const barEl     = document.getElementById('loading-bar');
         const barWrapEl = document.getElementById('loading-bar-wrap');
 
-        // ── 1. MindAR ─────────────────────────────────────────────────────────
-        const mindarTarget = new MindARThree({
+        // ── 1. Initialisation de MindAR (via l'objet global) ──────────────────
+        const mindarTarget = new window.MINDAR.IMAGE.MindARThree({
             container: document.body,
             imageTargetSrc: './targets.mind',
             uiLoading: "yes",
@@ -150,8 +146,8 @@
         });
         const { renderer, scene, camera } = mindarTarget;
 
-        // ── 2. CSS2DRenderer ──────────────────────────────────────────────────
-        const labelRenderer = new CSS2DRenderer();
+        // ── 2. CSS2DRenderer pour les étiquettes ──────────────────────────────
+        const labelRenderer = new THREE.CSS2DRenderer();
         labelRenderer.setSize(window.innerWidth, window.innerHeight);
         labelRenderer.domElement.id = 'label-container';
         document.body.appendChild(labelRenderer.domElement);
@@ -162,7 +158,7 @@
         dirLight.position.set(0, 2, 2);
         scene.add(dirLight);
 
-        // ── 4. Ancre + indicateur tracking ───────────────────────────────────
+        // ── 4. Gestion de l'Ancre AR ──────────────────────────────────────────
         const anchor = mindarTarget.addAnchor(0);
 
         anchor.onTargetFound = () => {
@@ -175,17 +171,17 @@
             statusEl.textContent   = "Pointez vers la statue...";
         };
 
-        // ── 5. Chargement GLB avec Draco ──────────────────────────────────────
-        const dracoLoader = new DRACOLoader();
+        // ── 5. Configuration du chargeur Draco + GLTF ─────────────────────────
+        const dracoLoader = new THREE.DRACOLoader();
         dracoLoader.setDecoderPath(
             'https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/'
         );
 
-        const loader = new GLTFLoader();
+        const loader = new THREE.GLTFLoader();
         loader.setDRACOLoader(dracoLoader);
 
         loader.load(
-            './Statue2.glb', // Ton fichier allégé de 83Mo
+            './Statue2.glb', // Utilise bien ton fichier de 83Mo placé dans ton dossier
             (gltf) => {
                 barWrapEl.style.display = 'none';
                 statusEl.textContent    = "Pointez la caméra vers la statue...";
@@ -202,7 +198,7 @@
 
                 anchor.group.add(model);
 
-                // ── 6. Annotations ────────────────────────────────────────────
+                // ── 6. Création des Annotations ───────────────────────────────
                 const popup    = document.getElementById('info-popup');
                 const popupTxt = document.getElementById('popup-text');
 
@@ -218,7 +214,7 @@
                         popup.style.display = 'block';
                     });
 
-                    const label = new CSS2DObject(div);
+                    const label = new THREE.CSS2DObject(div);
                     label.position.set(
                         data.x - center.x,
                         data.y - center.y,
@@ -243,23 +239,23 @@
             }
         );
 
-        // ── 7. Démarrage avec gestion d'erreur caméra ────────────────────────
+        // ── 7. Lancement de la caméra ─────────────────────────────────────────
         try {
             await mindarTarget.start();
         } catch (err) {
             console.warn('Caméra indisponible :', err);
             statusEl.style.display = 'block';
             statusEl.style.opacity = '1';
-            statusEl.textContent   = 'Caméra non disponible — testez sur smartphone en HTTPS';
+            statusEl.textContent   = 'Caméra non disponible — activez le HTTPS ou testez sur smartphone';
         }
 
-        // ── 8. Boucle de rendu ────────────────────────────────────────────────
+        // ── 8. Boucle d'animation principale ──────────────────────────────────
         renderer.setAnimationLoop(() => {
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
         });
 
-        // ── 9. Resize complet ─────────────────────────────────────────────────
+        // ── 9. Redimensionnement de la fenêtre ────────────────────────────────
         window.addEventListener('resize', () => {
             const w = window.innerWidth;
             const h = window.innerHeight;
