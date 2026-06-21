@@ -2,33 +2,113 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patrimoine AR - Superposition Statue</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Patrimoine AR</title>
     
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-aframe.prod.js"></script>
-</head>
-<body style="margin: 0; overflow: hidden;">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js"></script>
 
-    <div style="position: absolute; z-index: 999; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: white; padding: 14px 28px; border-radius: 30px; font-family: sans-serif; text-align: center; font-size: 15px; width: 80%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); pointer-events: none;">
-        Visez le panneau ou la statue pour activer les annotations AR
-    </div>
-
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" color-space="sRGB" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; }
         
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        /* Style des boutons d'annotation HTML rouges */
+        .annotation-pin {
+            background: #ff3b30;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            border: 2px solid white;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
 
-        <a-entity mindar-image-target="targetIndex: 0">
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            // 1. Initialisation de MindAR
+            const mindartarget = new MINDAR.IMAGE.MindARThree({
+                container: document.body,
+                imageTargetSrc: './targets.mind'
+            });
+            const {renderer, scene, camera} = mindartarget;
+
+            // 2. Initialisation du Renderer pour les étiquettes cliquables
+            const labelRenderer = new THREE.CSS2DRenderer();
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            labelRenderer.domElement.style.pointerEvents = 'none';
+            document.body.appendChild(labelRenderer.domElement);
+
+            // 3. Lumières
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            dirLight.position.set(0, 2, 2);
+            scene.add(dirLight);
+
+            // 4. Liaison avec l'image cible
+            const anchor = mindartarget.addAnchor(0);
+
+            // 5. Chargement de ta statue .glb
+            const loader = new THREE.GLTFLoader();
+            loader.load('./statue.glb', (gltf) => {
+                const model = gltf.scene;
+                
+                // TAILLE ET POSITION DE LA STATUE (Modifiable lors de tes tests)
+                model.scale.set(1.0, 1.0, 1.0);
+                model.position.set(0, 0, 0); 
+                
+                anchor.group.add(model);
+
+                // 6. annotations calculées à partir de ton tableau Metashape
+                const mesAnnotations = [
+                    { title: "🗿 Point 1 : La Tête (Réf)", x: 0.00, y: 0.00, z: 0.00 },
+                    { title: "🔍 Point 2 : Le Drapé",       x: -1.05, y: -3.82, z: 0.14 },
+                    { title: "📜 Point 3 : Détail Corps",   x: 0.01, y: -0.81, z: -0.38 },
+                    { title: "🏺 Point 5 : Le Socle",       x: 0.57, y: -3.30, z: -0.70 },
+                    
+                    // Attention : les points 4 et 6 sont très éloignés dans ton scan Metashape
+                    { title: "📍 Point 4 : Hors-champ A",   x: -4.84, y: -3.35, z: 9.36 },
+                    { title: "📍 Point 6 : Hors-champ B",   x: -4.81, y: -4.15, z: 9.33 }
+                ];
+
+                // Création des boutons
+                mesAnnotations.forEach(data => {
+                    const div = document.createElement('div');
+                    div.className = 'annotation-pin';
+                    div.textContent = data.title;
+                    div.style.pointerEvents = 'auto';
+                    
+                    div.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        alert(`Infos : ${data.title}`);
+                    });
+
+                    const labelObject = new THREE.CSS2DObject(div);
+                    labelObject.position.set(data.x, data.y, data.z);
+                    anchor.group.add(labelObject);
+                });
+            });
+
+            // 7. Démarrage de la caméra
+            await mindartarget.start();
             
-            <a-entity position="0 0 0" rotation="0 0 0" scale="1 1 1">
-                <iframe src="https://sketchfab.com/models/8e5c831ef44a42c18addc30fd03e84c8/embed?annotation_tooltip_visible=1&annotations_visible=1&ui_controls=1&ui_infos=0&autostart=1" 
-                        style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; border: none; background: transparent; z-index: 10; pointer-events: auto;"
-                        allow="xr-spatial-tracking; autoplay;">
-                </iframe>
-            </a-entity>
+            renderer.setAnimationLoop(() => {
+                renderer.render(scene, camera);
+                labelRenderer.render(scene, camera);
+            });
 
-        </a-entity>
-        </a-scene>
-
+            window.addEventListener('resize', () => {
+                labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        });
+    </script>
 </body>
 </html>
