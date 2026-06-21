@@ -10,7 +10,7 @@
 </head>
 <body style="margin: 0; overflow: hidden;">
 
-    <div style="position: absolute; z-index: 999; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: white; padding: 14px 28px; border-radius: 30px; font-family: sans-serif; text-align: center; font-size: 15px; width: 80%; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+    <div style="position: absolute; z-index: 999; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: white; padding: 14px 28px; border-radius: 30px; font-family: sans-serif; text-align: center; font-size: 15px; width: 80%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); pointer-events: none;">
         Visez le panneau ou la statue pour activer les annotations AR
     </div>
 
@@ -21,13 +21,14 @@
         <a-entity mindar-image-target="targetIndex: 0">
             
             <a-entity position="0 0 0" rotation="0 0 0" scale="1 1 1">
-                <iframe src="https://sketchfab.com/models/8e5c831ef44a42c18addc30fd03e84c8/embed?annotation_tooltip_visible=1&annotations_visible=1&ui_controls=0&ui_infos=0&autostart=1" style="width: 600px; height: 600px; border: none; background: transparent;"></iframe>
-                        style="width: 600px; height: 600px; border: none; background: transparent;">
+                <iframe src="https://sketchfab.com/models/8e5c831ef44a42c18addc30fd03e84c8/embed?annotation_tooltip_visible=1&annotations_visible=1&ui_controls=1&ui_infos=0&autostart=1" 
+                        style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; border: none; background: transparent; z-index: 10; pointer-events: auto;"
+                        allow="xr-spatial-tracking; autoplay;">
                 </iframe>
             </a-entity>
 
         </a-entity>
-    </a-scene>
+        </a-scene>
 
 </body>
 </html>
