@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Patrimoine AR</title>
 
-    <!-- MindAR en premier (embarque Three.js r128) -->
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js"></script>
-    <!-- Addons Three.js accrochés au même global THREE -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
 
     <style>
@@ -83,11 +82,31 @@
             z-index: 10;
             transition: opacity 0.5s;
         }
+
+        #loading-bar-wrap {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            overflow: hidden;
+            z-index: 10;
+            pointer-events: none;
+        }
+        #loading-bar {
+            height: 6px;
+            width: 0%;
+            background: #ff3b30;
+            transition: width 0.2s;
+        }
     </style>
 </head>
 <body>
 
-    <div id="status">Pointez la caméra vers la statue...</div>
+    <div id="status">Chargement du modèle...</div>
+    <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
 
     <div id="info-popup">
         <div id="popup-text"></div>
@@ -95,7 +114,7 @@
     </div>
 
     <script>
-        // ── Annotations : modifie titres et descriptions ici ─────────────────
+        // ── Annotations : modifie titres, descriptions et coordonnées ici ────
         const mesAnnotations = [
             {
                 title: "La Tête",
@@ -131,6 +150,10 @@
 
         document.addEventListener("DOMContentLoaded", async () => {
 
+            const statusEl  = document.getElementById('status');
+            const barEl     = document.getElementById('loading-bar');
+            const barWrapEl = document.getElementById('loading-bar-wrap');
+
             // ── 1. MindAR ────────────────────────────────────────────────────
             const mindarTarget = new MINDAR.IMAGE.MindARThree({
                 container: document.body,
@@ -155,7 +178,6 @@
 
             // ── 4. Ancre + indicateur tracking ───────────────────────────────
             const anchor = mindarTarget.addAnchor(0);
-            const statusEl = document.getElementById('status');
 
             anchor.onTargetFound = () => {
                 statusEl.style.opacity = '0';
@@ -167,20 +189,31 @@
                 statusEl.textContent = "Pointez vers la statue...";
             };
 
-            // ── 5. Chargement GLB ─────────────────────────────────────────────
+            // ── 5. Chargement GLB avec Draco ─────────────────────────────────
+            const dracoLoader = new THREE.DRACOLoader();
+            dracoLoader.setDecoderPath(
+                'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/'
+            );
+
             const loader = new THREE.GLTFLoader();
+            loader.setDRACOLoader(dracoLoader);
+
             loader.load(
                 './Statue.glb',           // ← vérifier casse exacte sur GitHub
                 (gltf) => {
+                    // Masquer la barre de chargement
+                    barWrapEl.style.display = 'none';
+                    statusEl.textContent = "Pointez la caméra vers la statue...";
+
                     const model = gltf.scene;
 
-                    // Recentrage automatique
-                    const box = new THREE.Box3().setFromObject(model);
+                    // Recentrage automatique sur le bounding box
+                    const box    = new THREE.Box3().setFromObject(model);
                     const center = box.getCenter(new THREE.Vector3());
-                    const size = box.getSize(new THREE.Vector3());
+                    const size   = box.getSize(new THREE.Vector3());
                     model.position.sub(center);
 
-                    // Échelle automatique (1 unité = largeur image cible)
+                    // Échelle : 1 unité MindAR = largeur de l'image cible
                     const maxDim = Math.max(size.x, size.y, size.z);
                     model.scale.setScalar(1.0 / maxDim);
 
@@ -211,9 +244,17 @@
                         anchor.group.add(label);
                     });
                 },
-                undefined,
+                // Progression du chargement (utile pour 83 Mo)
+                (xhr) => {
+                    if (xhr.lengthComputable) {
+                        const pct = Math.round((xhr.loaded / xhr.total) * 100);
+                        barEl.style.width = pct + '%';
+                        statusEl.textContent = `Chargement du modèle... ${pct}%`;
+                    }
+                },
                 (err) => {
                     console.error('Erreur GLB :', err);
+                    barWrapEl.style.display = 'none';
                     statusEl.style.display = 'block';
                     statusEl.style.opacity = '1';
                     statusEl.textContent = 'Erreur chargement modèle 3D';
