@@ -5,11 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Patrimoine AR</title>
 
-    <!-- MindAR en premier (embarque Three.js r128) -->
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js"></script>
-    <!-- Addons Three.js accrochés au même global THREE -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+          "three/addons/renderers/CSS3DRenderer.js": "https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS3DRenderer.js"
+        }
+      }
+    </script>
 
     <style>
         html, body {
@@ -18,14 +22,12 @@
             overflow: hidden;
             font-family: sans-serif;
         }
-
         #label-container {
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
             pointer-events: none;
         }
-
         .annotation-pin {
             background: #ff3b30;
             color: white;
@@ -41,7 +43,6 @@
             touch-action: manipulation;
             user-select: none;
         }
-
         #info-popup {
             display: none;
             position: absolute;
@@ -68,7 +69,6 @@
             font-size: 13px;
             cursor: pointer;
         }
-
         #status {
             position: absolute;
             top: 16px;
@@ -83,168 +83,181 @@
             z-index: 10;
             transition: opacity 0.5s;
         }
+        #loading-bar-wrap {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            overflow: hidden;
+            z-index: 10;
+            pointer-events: none;
+        }
+        #loading-bar {
+            height: 6px;
+            width: 0%;
+            background: #ff3b30;
+            transition: width 0.2s;
+        }
     </style>
 </head>
 <body>
 
-    <div id="status">Pointez la caméra vers la statue...</div>
+    <div id="status">Chargement du modèle...</div>
+    <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
 
     <div id="info-popup">
         <div id="popup-text"></div>
         <button onclick="document.getElementById('info-popup').style.display='none'">Fermer</button>
     </div>
 
-    <script>
-        // ── Annotations : modifie titres et descriptions ici ─────────────────
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js';
+
+        // ── Annotations ───────────────────────────────────────────────────────
         const mesAnnotations = [
-            {
-                title: "La Tête",
-                description: "Détail sculpté de la tête.",
-                x: 0.00, y: 0.00, z: 0.00
-            },
-            {
-                title: "Le Drapé",
-                description: "Tissu sculpté en marbre.",
-                x: -1.05, y: -3.82, z: 0.14
-            },
-            {
-                title: "Détail corps",
-                description: "Détail du corps de la statue.",
-                x: 0.01, y: -0.81, z: -0.38
-            },
-            {
-                title: "Repère A",
-                description: "À recalibrer.",
-                x: 0.0, y: -2.0, z: 0.0
-            },
-            {
-                title: "Le Socle",
-                description: "Socle de la statue.",
-                x: 0.56, y: -3.30, z: -0.70
-            },
-            {
-                title: "Repère B",
-                description: "À recalibrer.",
-                x: 0.0, y: -2.5, z: 0.0
-            }
+            { title: "La Tête",      description: "Détail sculpté de la tête.",   x:  0.00, y:  0.00, z:  0.00 },
+            { title: "Le Drapé",     description: "Tissu sculpté en marbre.",       x: -1.05, y: -3.82, z:  0.14 },
+            { title: "Détail corps", description: "Détail du corps de la statue.", x:  0.01, y: -0.81, z: -0.38 },
+            { title: "Repère A",     description: "À recalibrer.",                  x:  0.00, y: -2.00, z:  0.00 },
+            { title: "Le Socle",     description: "Socle de la statue.",           x:  0.56, y: -3.30, z: -0.70 },
+            { title: "Repère B",     description: "À recalibrer.",                  x:  0.00, y: -2.50, z:  0.00 },
         ];
 
-        document.addEventListener("DOMContentLoaded", async () => {
+        const statusEl  = document.getElementById('status');
+        const barEl     = document.getElementById('loading-bar');
+        const barWrapEl = document.getElementById('loading-bar-wrap');
 
-            // ── 1. MindAR ────────────────────────────────────────────────────
-            const mindarTarget = new MINDAR.IMAGE.MindARThree({
-                container: document.body,
-                imageTargetSrc: './targets.mind',
-                uiLoading: "yes",
-                uiScanning: "yes",
-                uiError: "yes",
-            });
-            const { renderer, scene, camera } = mindarTarget;
+        // ── 1. Initialisation de MindAR ───────────────────────────────────────
+        const mindarTarget = new MindARThree({
+            container: document.body,
+            imageTargetSrc: './targets.mind',
+            uiLoading: "yes",
+            uiScanning: "yes",
+            uiError: "yes",
+        });
+        const { renderer, scene, camera } = mindarTarget;
 
-            // ── 2. CSS2DRenderer ─────────────────────────────────────────────
-            const labelRenderer = new THREE.CSS2DRenderer();
-            labelRenderer.setSize(window.innerWidth, window.innerHeight);
-            labelRenderer.domElement.id = 'label-container';
-            document.body.appendChild(labelRenderer.domElement);
+        // ── 2. CSS2DRenderer pour les étiquettes ──────────────────────────────
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.id = 'label-container';
+        document.body.appendChild(labelRenderer.domElement);
 
-            // ── 3. Lumières ───────────────────────────────────────────────────
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-            dirLight.position.set(0, 2, 2);
-            scene.add(dirLight);
+        // ── 3. Lumières ───────────────────────────────────────────────────────
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        dirLight.position.set(0, 2, 2);
+        scene.add(dirLight);
 
-            // ── 4. Ancre + indicateur tracking ───────────────────────────────
-            const anchor = mindarTarget.addAnchor(0);
-            const statusEl = document.getElementById('status');
+        // ── 4. Gestion de l'Ancre AR ──────────────────────────────────────────
+        const anchor = mindarTarget.addAnchor(0);
 
-            anchor.onTargetFound = () => {
-                statusEl.style.opacity = '0';
-                setTimeout(() => { statusEl.style.display = 'none'; }, 600);
-            };
-            anchor.onTargetLost = () => {
-                statusEl.style.display = 'block';
-                statusEl.style.opacity = '1';
-                statusEl.textContent = "Pointez vers la statue...";
-            };
+        anchor.onTargetFound = () => {
+            statusEl.style.opacity = '0';
+            setTimeout(() => { statusEl.style.display = 'none'; }, 600);
+        };
+        anchor.onTargetLost = () => {
+            statusEl.style.display = 'block';
+            statusEl.style.opacity = '1';
+            statusEl.textContent   = "Pointez vers la statue...";
+        };
 
-            // ── 5. Chargement GLB ─────────────────────────────────────────────
-            const loader = new THREE.GLTFLoader();
-            loader.load(
-                './Statue.glb',           // ← vérifier casse exacte sur GitHub
-                (gltf) => {
-                    const model = gltf.scene;
+        // ── 5. Configuration du chargeur Draco + GLTF ─────────────────────────
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
 
-                    // Recentrage automatique
-                    const box = new THREE.Box3().setFromObject(model);
-                    const center = box.getCenter(new THREE.Vector3());
-                    const size = box.getSize(new THREE.Vector3());
-                    model.position.sub(center);
+        const loader = new GLTFLoader();
+        loader.setDRACOLoader(dracoLoader);
 
-                    // Échelle automatique (1 unité = largeur image cible)
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    model.scale.setScalar(1.0 / maxDim);
+        loader.load(
+            './Statue2.glb', // Ton fichier de 83Mo
+            (gltf) => {
+                barWrapEl.style.display = 'none';
+                statusEl.textContent    = "Pointez la caméra vers la statue...";
 
-                    anchor.group.add(model);
+                const model = gltf.scene;
 
-                    // ── 6. Annotations ───────────────────────────────────────
-                    const popup    = document.getElementById('info-popup');
-                    const popupTxt = document.getElementById('popup-text');
+                const box    = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size   = box.getSize(new THREE.Vector3());
+                model.position.sub(center);
 
-                    mesAnnotations.forEach((data) => {
-                        const div = document.createElement('div');
-                        div.className = 'annotation-pin';
-                        div.textContent = data.title;
+                const maxDim = Math.max(size.x, size.y, size.z);
+                model.scale.setScalar(1.0 / maxDim);
 
-                        div.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            popupTxt.innerHTML =
-                                `<strong>${data.title}</strong><br>${data.description}`;
-                            popup.style.display = 'block';
-                        });
+                anchor.group.add(model);
 
-                        const label = new THREE.CSS2DObject(div);
-                        label.position.set(
-                            data.x - center.x,
-                            data.y - center.y,
-                            data.z - center.z
-                        );
-                        anchor.group.add(label);
+                // ── 6. Création des Annotations ───────────────────────────────
+                const popup    = document.getElementById('info-popup');
+                const popupTxt = document.getElementById('popup-text');
+
+                mesAnnotations.forEach((data) => {
+                    const div = document.createElement('div');
+                    div.className   = 'annotation-pin';
+                    div.textContent = data.title;
+
+                    div.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        popupTxt.innerHTML = `<strong>${data.title}</strong><br>${data.description}`;
+                        popup.style.display = 'block';
                     });
-                },
-                undefined,
-                (err) => {
-                    console.error('Erreur GLB :', err);
-                    statusEl.style.display = 'block';
-                    statusEl.style.opacity = '1';
-                    statusEl.textContent = 'Erreur chargement modèle 3D';
+
+                    const label = new CSS2DObject(div);
+                    label.position.set(
+                        data.x - center.x,
+                        data.y - center.y,
+                        data.z - center.z
+                    );
+                    anchor.group.add(label);
+                });
+            },
+            (xhr) => {
+                if (xhr.lengthComputable) {
+                    const pct = Math.round((xhr.loaded / xhr.total) * 100);
+                    barEl.style.width    = pct + '%';
+                    statusEl.textContent = `Chargement du modèle... ${pct}%`;
                 }
-            );
-
-            // ── 7. Démarrage avec gestion d'erreur caméra ────────────────────
-            try {
-                await mindarTarget.start();
-            } catch (err) {
-                console.warn('Caméra indisponible :', err);
-                statusEl.style.display = 'block';
-                statusEl.style.opacity = '1';
-                statusEl.textContent = 'Caméra non disponible — testez sur smartphone en HTTPS';
+            },
+            (err) => {
+                console.error('Erreur GLB :', err);
+                barWrapEl.style.display = 'none';
+                statusEl.style.display  = 'block';
+                statusEl.style.opacity  = '1';
+                statusEl.textContent    = 'Erreur chargement modèle 3D';
             }
+        );
 
-            // ── 8. Boucle de rendu ────────────────────────────────────────────
-            renderer.setAnimationLoop(() => {
-                renderer.render(scene, camera);
-                labelRenderer.render(scene, camera);
-            });
+        // ── 7. Lancement de la caméra ─────────────────────────────────────────
+        try {
+            await mindarTarget.start();
+        } catch (err) {
+            console.warn('Caméra indisponible :', err);
+            statusEl.style.display = 'block';
+            statusEl.style.opacity = '1';
+            statusEl.textContent   = 'Caméra non disponible — activez le HTTPS ou testez sur smartphone';
+        }
 
-            // ── 9. Resize complet ─────────────────────────────────────────────
-            window.addEventListener('resize', () => {
-                const w = window.innerWidth;
-                const h = window.innerHeight;
-                camera.aspect = w / h;
-                camera.updateProjectionMatrix();
-                renderer.setSize(w, h);
-                labelRenderer.setSize(w, h);
-            });
+        // ── 8. Boucle d'animation principale ──────────────────────────────────
+        renderer.setAnimationLoop(() => {
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        });
+
+        // ── 9. Redimensionnement de la fenêtre ────────────────────────────────
+        window.addEventListener('resize', () => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+            labelRenderer.setSize(w, h);
         });
     </script>
 </body>
