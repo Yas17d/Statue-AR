@@ -55,7 +55,6 @@
             display: none; -webkit-tap-highlight-color: transparent;
         }
         
-        /* ── Barre des modes (haut de l'écran désormais pour libérer le bas) ── */
         #controls {
             position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
             display: none; gap: 12px; z-index: 99999;
@@ -70,7 +69,7 @@
         .btn.active { background: rgba(79,142,247,0.85); border-color: transparent; color: white; }
 
         #tap-hint {
-            position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+            position: fixed; bottom: 130px; left: 50%; transform: translateX(-50%);
             background: rgba(255,255,255,0.15); color: white;
             padding: 10px 20px; border-radius: 20px; font-size: 13px;
             z-index: 99999; display: none; text-align: center;
@@ -79,23 +78,24 @@
         }
         @keyframes pulse-hint { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 
-        /* ── NOUVEAU : Barre d'infos avec boutons interactifs ── */
+        /* ── Barre d'infos avec boutons interactifs (ajustée pour 3 boutons) ── */
         #info-buttons-bar {
             position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
-            display: none; gap: 12px; z-index: 99999; width: 90%; max-width: 360px;
+            display: none; gap: 8px; z-index: 99999; width: 92%; max-width: 400px;
             justify-content: center;
         }
         .btn-info {
             flex: 1; background: rgba(255, 200, 50, 0.2); color: #ffc832;
             border: 1px solid rgba(255, 200, 50, 0.4);
-            padding: 14px; border-radius: 14px; font-weight: 600; font-size: 14px;
+            padding: 12px 6px; border-radius: 12px; font-weight: 600; font-size: 12px;
             cursor: pointer; text-align: center; backdrop-filter: blur(8px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             transition: background 0.2s; -webkit-tap-highlight-color: transparent;
         }
         .btn-info:active { background: rgba(255, 200, 50, 0.4); }
 
-        /* ── Fiche annotation / Bulle d'infos ── */
+        /* ── Fiche annotation ── */
         #annotation-card {
             position: fixed; bottom: 100px; left: 50%;
             transform: translateX(-50%);
@@ -166,7 +166,8 @@
 
     <div id="info-buttons-bar">
         <button class="btn-info" id="btn-info-0">💡 La Tête</button>
-        <button class="btn-info" id="btn-info-1">🏛️ Le Socle</button>
+        <button class="btn-info" id="btn-info-1">⚔️ Attributs</button>
+        <button class="btn-info" id="btn-info-2">🏛️ Le Socle</button>
     </div>
     
     <div id="annotation-card">
@@ -192,13 +193,17 @@
                 tag: 'Sculpture · XIXe s.'
             },
             {
+                title: 'Les Attributs',
+                body: 'Ici le texte concernant les objets tenus, les vêtements, les armes, les drapés ou symboles portés par le personnage...',
+                tag: 'Détails · Iconographie'
+            },
+            {
                 title: 'Le socle',
                 body: 'Le socle : inscription, date, matériau, contexte historique de l\'érection...',
                 tag: 'Histoire · Épigraphie'
             }
         ];
         
-        // ── UI refs ────────────────────────────────────────────────
         const selectionScreen = document.getElementById('selection-screen');
         const arContainer     = document.getElementById('ar-container');
         const msgEl           = document.getElementById('msg');
@@ -221,7 +226,6 @@
 
         const showMsg = t => { msgEl.textContent = t; };
 
-        // ── Gestion de l'affichage des Bulles d'Infos ──────────────
         function showInfoCard(index) {
             const data = DATA_INFOS[index];
             document.getElementById('ac-title').textContent = data.title;
@@ -233,15 +237,17 @@
 
         document.getElementById('ac-close').addEventListener('click', closeInfoCard);
 
-        // Actions au clic sur les nouveaux boutons d'infos
+        // Écouteurs d'événements pour les 3 boutons d'infos
         document.getElementById('btn-info-0').addEventListener('click', (e) => {
             e.stopPropagation(); showInfoCard(0);
         });
         document.getElementById('btn-info-1').addEventListener('click', (e) => {
             e.stopPropagation(); showInfoCard(1);
         });
+        document.getElementById('btn-info-2').addEventListener('click', (e) => {
+            e.stopPropagation(); showInfoCard(2);
+        });
 
-        // ── Initialisation AR ──────────────────────────────────────
         function initAR() {
             mindarTarget = new MindARThree({
                 container: arContainer,
@@ -268,7 +274,7 @@
             anchor.onTargetFound = () => {
                 if (currentMode === 'scan') {
                     showMsg('✅ Cible trouvée');
-                    infoBar.style.display = 'flex'; // Affiche les boutons d'infos
+                    infoBar.style.display = 'flex';
                 }
             };
             anchor.onTargetLost = () => {
@@ -286,7 +292,6 @@
 
             loader.load('./Statue25.glb', (gltf) => {
                 const model = gltf.scene;
-
                 const box    = new THREE.Box3().setFromObject(model);
                 const center = box.getCenter(new THREE.Vector3());
                 const size   = box.getSize(new THREE.Vector3());
@@ -317,7 +322,6 @@
 
             }, undefined, () => showMsg('❌ Erreur GLB'));
 
-            // Clic sur l'écran (Mode Tactile)
             arContainer.addEventListener('click', (e) => {
                 if (annotCard.style.display === 'block') {
                     closeInfoCard(); return;
@@ -333,7 +337,7 @@
 
                 statueModel.visible = true;
                 tapHint.style.display = 'none';
-                infoBar.style.display = 'flex'; // Rend les boutons d'infos disponibles
+                infoBar.style.display = 'flex';
                 showMsg('');
             });
 
