@@ -155,7 +155,6 @@
 </head>
 <body>
 
-    <!-- Sélection -->
     <div id="selection-screen">
         <h1>🏛️ Patrimoine AR</h1>
         <p>Choisissez votre mode de visualisation</p>
@@ -169,7 +168,6 @@
         </div>
     </div>
 
-    <!-- AR -->
     <div id="ar-container"></div>
     <div id="msg">Initialisation...</div>
     <button id="btn-back">← Retour</button>
@@ -179,13 +177,11 @@
     </div>
     <div id="tap-hint">👆 Touchez l'écran pour poser la statue</div>
 
-    <!-- 4 points AR -->
     <div class="ar-dot" id="dot-0"><div class="ring-outer"></div><div class="ring"></div></div>
     <div class="ar-dot" id="dot-1"><div class="ring-outer"></div><div class="ring"></div></div>
     <div class="ar-dot" id="dot-2"><div class="ring-outer"></div><div class="ring"></div></div>
     <div class="ar-dot" id="dot-3"><div class="ring-outer"></div><div class="ring"></div></div>
 
-    <!-- Fiche annotation -->
     <div id="annotation-card">
         <div class="ac-header">
             <span class="ac-title" id="ac-title">Titre</span>
@@ -202,14 +198,11 @@
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
         // ── Données des annotations ────────────────────────────────
-        // Positions en coordonnées locales relatives à la statue (après centrage)
-        // x = gauche/droite, y = bas/haut, z = avant/arrière
-        // Ajustez ces valeurs selon votre modèle réel
+        // Positions relatives à l'origine locale du wrapper de la statue.
         const ANNOTATIONS = [
             {
                 id: 0,
                 label: 'Tête',
-                // Sommet de la statue — y positif = haut
                 offset: new THREE.Vector3(0, 0.45, 0.05),
                 title: 'La tête',
                 body: 'Décrivez ici les détails de la tête de la statue : style, époque, matériau, symbolisme...',
@@ -253,8 +246,8 @@
         const annotCard       = document.getElementById('annotation-card');
         const dots            = ANNOTATIONS.map(a => document.getElementById('dot-' + a.id));
 
-        let currentMode  = null;
-        let statueModel  = null;
+        let currentMode   = null;
+        let statueModel   = null;
         let mindarTarget = null;
         let camera       = null;
         let renderer     = null;
@@ -263,7 +256,6 @@
         let arStarted    = false;
         let statueVisible = false;
 
-        // Points 3D dans l'espace monde (mis à jour chaque frame)
         const worldPoints = ANNOTATIONS.map(() => new THREE.Vector3());
 
         const showMsg = t => { msgEl.textContent = t; };
@@ -274,7 +266,7 @@
             return {
                 x: (v.x * 0.5 + 0.5) * window.innerWidth,
                 y: (-v.y * 0.5 + 0.5) * window.innerHeight,
-                visible: v.z < 1   // devant la caméra
+                visible: v.z < 1
             };
         }
 
@@ -284,8 +276,10 @@
                 return;
             }
 
+            // Correction cruciale : Forcer la mise à jour de la matrice monde avant de calculer les positions réelles
+            statueModel.updateMatrixWorld(true);
+
             ANNOTATIONS.forEach((ann, i) => {
-                // Calculer la position monde du point d'annotation
                 const localPos = ann.offset.clone();
                 statueModel.localToWorld(localPos);
                 worldPoints[i].copy(localPos);
@@ -377,7 +371,7 @@
                 const wrapper = new THREE.Group();
                 wrapper.add(model);
 
-                const targetWidthMeters = 3.0;
+                const targetWidthMeters = 0.2;
                 const statueRealHeight  = 3.5;
                 wrapper.scale.setScalar((statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters);
 
@@ -400,7 +394,6 @@
 
             // Tap mode tactile
             arContainer.addEventListener('click', (e) => {
-                // Fermer la fiche si ouverte
                 if (annotCard.style.display === 'block') {
                     closeAnnotation(); return;
                 }
@@ -419,7 +412,7 @@
                 showMsg('✅ Touchez un point lumineux pour en savoir plus');
             });
 
-            // Boucle de rendu — mise à jour des points chaque frame
+            // Boucle de rendu
             renderer.setAnimationLoop(() => {
                 renderer.render(scene, camera);
                 updateDots();
