@@ -84,7 +84,7 @@
         const mindarTarget = new MindARThree({
             container: container,
             imageTargetSrc: './targets.mind',
-            uiScanning: "yes",
+            uiScanning: "no", // Modifié : On coupe le loader natif en boucle
         });
 
         const { renderer, scene, camera } = mindarTarget;
@@ -99,110 +99,4 @@
         // Ancre pour le mode scan automatique
         const anchor = mindarTarget.addAnchor(0);
 
-        // Groupe factice pour le mode manuel (placé devant la caméra)
-        const manualGroup = new THREE.Group();
-        scene.add(manualGroup);
-
-        // ── 2. Chargement sécurisé de ta statue ──────────────────────────────
-        const dracoLoader = new DRACOLoader();
-        dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
-        const loader = new GLTFLoader();
-        loader.setDRACOLoader(dracoLoader);
-
-        loader.load('./Statue25.glb', (gltf) => {
-            statueModel = gltf.scene;
-
-            // Recalcul du centrage strict Metashape
-            const box = new THREE.Box3().setFromObject(statueModel);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            statueModel.position.set(-center.x, -center.y, -center.z);
-
-            // Conteneur pivot
-            const wrapper = new THREE.Group();
-            wrapper.add(statueModel);
-            
-            // Échelle de base forcée
-            const maxDim = Math.max(size.x, size.y, size.z);
-            wrapper.scale.setScalar(1.0 / maxDim);
-
-            // Par défaut, on l'attache à l'ancre de scan automatique
-            statueModel = wrapper;
-            anchor.group.add(statueModel);
-            msg.textContent = '🔍 Prêt ! Visez votre image cible';
-        }, undefined, (err) => {
-            msg.textContent = '❌ Erreur de chargement du GLB';
-            console.error(err);
-        });
-
-        // ── 3. Gestion des modes de détection ────────────────────────────────
-        anchor.onTargetFound = () => { 
-            if(currentMode === 'scan') msg.textContent = '✅ Cible trouvée !'; 
-        };
-        anchor.onTargetLost = () => { 
-            if(currentMode === 'scan') msg.textContent = '🔍 Cherche la cible...'; 
-        };
-
-        btnScan.addEventListener('click', () => {
-            currentMode = 'scan';
-            btnScan.classList.add('active');
-            btnTouch.classList.remove('active');
-            msg.textContent = '🔍 Mode Scan activé. Visez l\'image';
-            
-            // On remet le modèle sur l'ancre automatique
-            if (statueModel) {
-                manualGroup.remove(statueModel);
-                anchor.group.add(statueModel);
-                statueModel.position.set(0, 0, 0); // Reset position
-            }
-        });
-
-        btnTouch.addEventListener('click', () => {
-            currentMode = 'touch';
-            btnTouch.classList.add('active');
-            btnScan.classList.remove('active');
-            msg.textContent = '👆 Mode Manuel : touchez l\'écran pour poser la statue';
-            
-            // On bascule le modèle sur le contrôle manuel
-            if (statueModel) {
-                anchor.group.remove(statueModel);
-                manualGroup.add(statueModel);
-                // On la cache tant qu'on a pas cliqué
-                statueModel.visible = false; 
-            }
-        });
-
-        // ── 4. Option 2 : Cliquer sur la zone pour positionner ────────────────
-        container.addEventListener('click', (e) => {
-            if (currentMode !== 'touch' || !statueModel) return;
-
-            // Rendre la statue visible immédiatement
-            statueModel.visible = true;
-
-            // Positionner la statue à 1.5 mètre pile devant l'objectif du téléphone
-            const distance = 1.5; 
-            const direction = new THREE.Vector3();
-            camera.getWorldDirection(direction);
-
-            statueModel.position.copy(camera.position).addScaledVector(direction, distance);
-            
-            // Orienter la statue vers l'utilisateur pour qu'elle soit face à nous
-            statueModel.lookAt(camera.position.x, statueModel.position.y, camera.position.z);
-
-            msg.textContent = '📍 Statue positionnée !';
-        });
-
-        // ── 5. Démarrage caméra ──────────────────────────────────────────────
-        try {
-            await mindarTarget.start();
-        } catch(e) {
-            msg.textContent = '❌ Caméra bloquée (Vérifiez le HTTPS)';
-        }
-
-        // Boucle d'animation
-        renderer.setAnimationLoop(() => {
-            renderer.render(scene, camera);
-        });
-    </script>
-</body>
-</html>
+        // Groupe factice pour le mode manuel (placé
