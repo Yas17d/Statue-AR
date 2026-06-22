@@ -179,7 +179,7 @@
                 // MindAR : l'ancre fait 1 unité de large par défaut
                 // On veut que la statue fasse ~0.8× la largeur de la cible
                 const maxDim = Math.max(size.x, size.y, size.z);
-                const targetWidthMeters = 0.7;  // estimez la largeur de votre image cible en mètres
+                const targetWidthMeters = 3.0;  // estimez la largeur de votre image cible en mètres
                 const statueRealHeight  = 3.5;  // hauteur réelle de la statue en mètres
                 wrapper.scale.setScalar((statueRealHeight / maxDim) * (targetWidthMeters / 1.0));
                 
