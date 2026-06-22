@@ -14,16 +14,120 @@
     </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, sans-serif; }
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
-        #ar-container { position: fixed; inset: 0; }
+        /* ── Écran d'accueil amélioré style Web ── */
+        #selection-screen {
+            position: fixed; inset: 0; 
+            background: linear-gradient(135deg, #0f0f11 0%, #1a1a24 100%);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 100000; padding: 2rem;
+            color: white;
+        }
+        
+        .hero-container {
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .app-badge {
+            display: inline-block;
+            background: rgba(255, 200, 50, 0.1);
+            color: #ffc832;
+            border: 1px solid rgba(255, 200, 50, 0.25);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        #selection-screen h1 { 
+            font-size: 28px; 
+            font-weight: 800; 
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(180deg, #ffffff 0%, #cccccc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .description-text { 
+            color: rgba(255,255,255,0.65); 
+            font-size: 14px; 
+            line-height: 1.6;
+            margin-bottom: 32px; 
+            padding: 0 10px;
+        }
+
+        /* Bouton d'action principal */
+        .mode-card {
+            width: 100%;
+            background: #ffc832;
+            border: none;
+            border-radius: 14px; 
+            padding: 18px 24px;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer; 
+            transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 4px 20px rgba(255, 200, 50, 0.25);
+        }
+        
+        .mode-card:active {
+            transform: scale(0.98);
+            background: #e6b32c;
+        }
+
+        .mode-card .icon { 
+            font-size: 22px; 
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+        }
+
+        .mode-card h2 { 
+            color: #0f0f11; 
+            font-size: 16px; 
+            font-weight: 700; 
+        }
+
+        .footer-note {
+            margin-top: 40px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.35);
+        }
+
+        /* ── Interface AR ── */
+        #ar-container { position: fixed; inset: 0; display: none; }
 
         #msg {
             position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.75); color: white;
             padding: 10px 20px; border-radius: 20px; font-size: 14px;
             z-index: 99999; pointer-events: none; text-align: center;
-            max-width: 90%; display: block;
+            max-width: 90%; display: none;
+        }
+        
+        #btn-back {
+            position: fixed; top: 16px; left: 16px;
+            background: rgba(0,0,0,0.6); color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 10px 16px; border-radius: 10px;
+            font-size: 14px; cursor: pointer; z-index: 99999;
+            display: none; -webkit-tap-highlight-color: transparent;
+            backdrop-filter: blur(4px);
         }
 
         /* ── Barre de navigation style Sketchfab ── */
@@ -53,7 +157,7 @@
             overflow: hidden; text-overflow: ellipsis; padding: 0 8px;
         }
 
-        /* ── Fiche annotation (Design Sombre + Touche Or) ── */
+        /* ── Fiche annotation ── */
         #annotation-card {
             position: fixed; bottom: 100px; left: 50%;
             transform: translateX(-50%);
@@ -76,17 +180,9 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding-bottom: 8px;
         }
-        #annotation-card .ac-title {
-            color: #ffffff; font-size: 16px; font-weight: 700;
-        }
-        #annotation-card .ac-close {
-            color: rgba(255,255,255,0.4); font-size: 18px;
-            cursor: pointer; padding: 2px 6px;
-        }
-        #annotation-card .ac-body {
-            color: rgba(255,255,255,0.85);
-            font-size: 13.5px; line-height: 1.5;
-        }
+        #annotation-card .ac-title { color: #ffffff; font-size: 16px; font-weight: 700; }
+        #annotation-card .ac-close { color: rgba(255,255,255,0.4); font-size: 18px; cursor: pointer; padding: 2px 6px; }
+        #annotation-card .ac-body { color: rgba(255,255,255,0.85); font-size: 13.5px; line-height: 1.5; }
         #annotation-card .ac-body strong { color: #ffc832; font-weight: 500; }
         #annotation-card .ac-tag {
             display: inline-block; margin-top: 12px;
@@ -99,8 +195,26 @@
 </head>
 <body>
 
+    <div id="selection-screen">
+        <div class="hero-container">
+            <span class="app-badge">Réalité Augmentée</span>
+            <h1>🏛️ Patrimoine AR</h1>
+            <p class="description-text">
+                Bienvenue dans l'expérience interactive du Musée en plein air. Pour découvrir la statue numérique du <strong>Pâtre</strong> en taille réelle et explorer ses secrets d'histoire, autorisez l'accès à votre caméra puis scannez le panneau ou l'image cible qui lui est associée.
+            </p>
+            
+            <button class="mode-card" id="pick-scan">
+                <span class="icon">📷</span>
+                <h2>Lancer la numérisation</h2>
+            </button>
+            
+            <p class="footer-note">Optimisé pour smartphone · Placez-vous face à la cible</p>
+        </div>
+    </div>
+
     <div id="ar-container"></div>
     <div id="msg">Initialisation...</div>
+    <button id="btn-back">← Quitter</button>
 
     <div id="carousel-navigation-bar">
         <button class="nav-arrow" id="nav-prev">◂</button>
@@ -158,8 +272,10 @@
 
         let currentIndex = 0;
         
+        const selectionScreen = document.getElementById('selection-screen');
         const arContainer   = document.getElementById('ar-container');
         const msgEl         = document.getElementById('msg');
+        const btnBack       = document.getElementById('btn-back');
         const annotCard     = document.getElementById('annotation-card');
         const carouselBar   = document.getElementById('carousel-navigation-bar');
         const carouselTitle = document.getElementById('carousel-title');
@@ -169,6 +285,7 @@
         let camera       = null;
         let renderer     = null;
         let anchor       = null;
+        let arStarted    = false;
 
         const showMsg = t => { msgEl.textContent = t; };
 
@@ -205,6 +322,8 @@
         });
 
         function initAR() {
+            if (mindarTarget) return; // Évite les réinitialisations multiples
+
             mindarTarget = new MindARThree({
                 container: arContainer,
                 imageTargetSrc: './targets.mind',
@@ -263,7 +382,8 @@
 
                 statueModel = wrapper;
                 anchor.group.add(statueModel);
-                showMsg('🔍 Visez votre image cible');
+                
+                if (arStarted) showMsg('🔍 Visez votre image cible');
 
             }, undefined, () => showMsg('❌ Erreur GLB'));
 
@@ -278,20 +398,38 @@
             });
         }
 
-        async function startApp() {
-            showMsg('📷 Démarrage caméra...');
-            initAR();
-            try {
-                await mindarTarget.start();
-                document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
+        async function launchAR() {
+            selectionScreen.style.display = 'none';
+            arContainer.style.display     = 'block';
+            msgEl.style.display           = 'block';
+            btnBack.style.display         = 'block';
+
+            if (!arStarted) {
+                showMsg('📷 Démarrage caméra...');
+                initAR();
+                try {
+                    await mindarTarget.start();
+                    document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
+                    arStarted = true;
+                    showMsg('🔍 Visez votre image cible');
+                } catch {
+                    showMsg('❌ Caméra bloquée');
+                }
+            } else {
                 showMsg('🔍 Visez votre image cible');
-            } catch {
-                showMsg('❌ Caméra bloquée');
             }
         }
 
-        // Lancement immédiat de l'expérience AR au chargement de la page
-        window.addEventListener('DOMContentLoaded', startApp);
+        btnBack.addEventListener('click', () => {
+            selectionScreen.style.display = 'flex';
+            arContainer.style.display     = 'none';
+            msgEl.style.display           = 'none';
+            btnBack.style.display         = 'none';
+            carouselBar.style.display     = 'none';
+            closeInfoCard();
+        });
+
+        document.getElementById('pick-scan').addEventListener('click', launchAR);
     </script>
 </body>
 </html>
