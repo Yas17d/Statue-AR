@@ -129,7 +129,6 @@
 
         const showMsg = t => { msgEl.textContent = t; };
 
-        // ── Initialisation Three.js + MindAR ─────────────────────────
         function initAR() {
             mindarTarget = new MindARThree({
                 container: arContainer,
@@ -175,18 +174,12 @@
                 const maxDim = Math.max(size.x, size.y, size.z);
                 wrapper.scale.setScalar(0.8 / maxDim);
 
-                // ── Correction de l'orientation (Tête EN HAUT + De face) ──────
-                // 1. Redresser la tête (Metashape Z → Three.js Y)
-                wrapper.rotation.x = Math.PI / 2; // +90° sur X
+                // ── CORRECTION COMPLÈTE DE L'ORIENTATION METASHAPE ──
+                wrapper.rotation.x = Math.PI / 2;  // Inclinaison initiale
+                wrapper.rotation.y = Math.PI;       // Face à la caméra
+                wrapper.rotation.z = Math.PI;       // REVIREMENT À 180° : Remet la tête en haut
 
-                // 2. Pivot de face + compensation caméra inversée du téléphone
-                // Dans Three.js, l'axe Y pointe vers le haut de l'écran.
-                // En AR, la caméra du téléphone arrive souvent inversée (haut=bas).
-                // On applique une rotation complète (180°) pour que la statue 
-                // soit dessinée tête en haut par rapport à l'écran de Three.js.
-                wrapper.rotation.y = Math.PI; 
-
-                // Lever légèrement au-dessus du plan
+                // Ajustement de la hauteur par rapport à sa boîte englobante réelle
                 wrapper.position.y = size.y * (0.8 / maxDim) * 0.5;
 
                 statueModel = wrapper;
