@@ -129,6 +129,7 @@
 
         const showMsg = t => { msgEl.textContent = t; };
 
+        // ── Initialisation Three.js + MindAR ─────────────────────────
         function initAR() {
             mindarTarget = new MindARThree({
                 container: arContainer,
@@ -163,23 +164,27 @@
             loader.load('./Statue25.glb', (gltf) => {
                 const model = gltf.scene;
 
+                // ── Centrage précis ──────────────────────────────────
                 const box    = new THREE.Box3().setFromObject(model);
                 const center = box.getCenter(new THREE.Vector3());
                 const size   = box.getSize(new THREE.Vector3());
-                model.position.sub(center); 
+                model.position.sub(center); // recentrer sur l'origine
 
                 const wrapper = new THREE.Group();
                 wrapper.add(model);
 
+                // ── Scale ───────────────────────────────────────────
                 const maxDim = Math.max(size.x, size.y, size.z);
                 wrapper.scale.setScalar(0.8 / maxDim);
 
-                // ── RECALIBRAGE DES ROTATIONS ──
-                wrapper.rotation.x = -Math.PI / 2; // Redresse l'axe vertical Metashape vers le haut
-                wrapper.rotation.y = 0;             // Garde la position de face obtenue
-                wrapper.rotation.z = 0;             // Évite les conflits de pivot secondaires
+                // ── DOUBLE CORRECTION D'ORIENTATION : TÊTE EN HAUT + DE FACE ──
+                // 1. Redresser la tête (pivoter de 180° sur X pour compenser Z-up inversé)
+                wrapper.rotation.x = Math.PI; 
 
-                // Placer la base sur la grille
+                // 2. Faire pivoter de face (pivoter de 180° sur Y pour compenser le dos)
+                wrapper.rotation.y = Math.PI; 
+
+                // Lever légèrement pour que la base repose sur la cible
                 wrapper.position.y = size.y * (0.8 / maxDim) * 0.5;
 
                 statueModel = wrapper;
@@ -207,14 +212,17 @@
         function onTap(e) {
             if (currentMode !== 'touch' || !statueModel) return;
 
+            // Vecteur "devant la caméra" dans l'espace monde
             const camDir = new THREE.Vector3(0, 0, -1);
             camDir.applyQuaternion(camera.quaternion);
 
+            // Distance de placement (en unités Three.js / mètres approx)
             const distance = 2;
             const pos = camera.position.clone().addScaledVector(camDir, distance);
 
             manualGroup.position.copy(pos);
 
+            // Orienter la statue pour qu'elle fasse face à la caméra (axe Y seul)
             const lookTarget = new THREE.Vector3(
                 camera.position.x,
                 manualGroup.position.y,
@@ -224,80 +232,4 @@
 
             statueModel.visible = true;
             tapHint.style.display = 'none';
-            showMsg('📍 Touchez à nouveau pour déplacer');
-        }
-
-        async function launchAR(mode) {
-            selectionScreen.style.display = 'none';
-            arContainer.style.display     = 'block';
-            msgEl.style.display           = 'block';
-            btnBack.style.display         = 'block';
-            controls.style.display        = 'flex';
-            currentMode = mode;
-            updateBtns();
-
-            if (!arStarted) {
-                showMsg('📷 Démarrage caméra...');
-                initAR();
-                try {
-                    await mindarTarget.start();
-                    document.querySelectorAll('.mindar-ui-overlay')
-                        .forEach(el => el.style.display = 'none');
-                    arStarted = true;
-
-                    if (mode === 'scan') {
-                        showMsg('🔍 Visez votre image cible');
-                    } else {
-                        showMsg('');
-                        tapHint.style.display = 'block';
-                    }
-                } catch(err) {
-                    showMsg('❌ Caméra bloquée — HTTPS requis');
-                    console.error(err);
-                }
-            }
-        }
-
-        function setMode(mode) {
-            currentMode = mode;
-            updateBtns();
-
-            if (!statueModel) return;
-
-            if (mode === 'scan') {
-                manualGroup.remove(statueModel);
-                anchor.group.add(statueModel);
-                statueModel.position.set(0, statueModel.position.y, 0);
-                statueModel.visible = true;
-                tapHint.style.display = 'none';
-                showMsg('🔍 Visez votre image cible');
-            } else {
-                anchor.group.remove(statueModel);
-                manualGroup.add(statueModel);
-                statueModel.visible = false;
-                tapHint.style.display = 'block';
-                showMsg('');
-            }
-        }
-
-        function updateBtns() {
-            btnScan.classList.toggle('active',  currentMode === 'scan');
-            btnTouch.classList.toggle('active', currentMode === 'touch');
-        }
-
-        btnBack.addEventListener('click', () => {
-            selectionScreen.style.display = 'flex';
-            arContainer.style.display     = 'none';
-            msgEl.style.display           = 'none';
-            btnBack.style.display         = 'none';
-            controls.style.display        = 'none';
-            tapHint.style.display         = 'none';
-        });
-
-        document.getElementById('pick-scan').addEventListener('click',  () => launchAR('scan'));
-        document.getElementById('pick-touch').addEventListener('click', () => launchAR('touch'));
-        btnScan.addEventListener('click',  () => setMode('scan'));
-        btnTouch.addEventListener('click', () => setMode('touch'));
-    </script>
-</body>
-</html>
+            showMsg('📍 Touchez à nouveau pour déplacerhttp://googleusercontent.com/image_generation_content/0
