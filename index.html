@@ -15,7 +15,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, sans-serif; background: #0a0a0a; }
-
+ 
         #selection-screen {
             position: fixed; inset: 0; background: #0a0a0a;
             display: flex; flex-direction: column;
@@ -38,9 +38,9 @@
         .mode-card .icon { font-size: 30px; flex-shrink: 0; }
         .mode-card h2 { color: white; font-size: 16px; font-weight: 600; margin: 0 0 4px; }
         .mode-card span { color: rgba(255,255,255,0.5); font-size: 13px; line-height: 1.3; }
-
+ 
         #ar-container { position: fixed; inset: 0; display: none; z-index: 10; }
-
+ 
         #msg {
             position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.75); color: white;
@@ -71,7 +71,7 @@
             flex: 1; text-align: center;
         }
         .btn.active { background: rgba(79,142,247,0.85); border-color: transparent; color: white; }
-
+ 
         /* ── Barre de navigation ── */
         #carousel-navigation-bar {
             position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
@@ -98,7 +98,7 @@
             flex: 1; text-align: center; white-space: nowrap;
             overflow: hidden; text-overflow: ellipsis; padding: 0 8px;
         }
-
+ 
         /* ── Fiche annotation ── */
         #annotation-card {
             position: fixed; top: 140px; bottom: 100px; left: 50%;
@@ -140,7 +140,7 @@
     </style>
 </head>
 <body>
-
+ 
     <div id="selection-screen">
         <h1>🏛️ Patrimoine AR</h1>
         <p>Musée en plein air du Sart Tilman</p>
@@ -149,18 +149,18 @@
             <span class="icon">📍</span>
             <div><h2>Informations</h2><span>Guide d'utilisation de l'application</span></div>
         </div>
-
+ 
         <div class="mode-card" id="pick-perspectives">
             <span class="icon">✨</span>
             <div><h2>Perspectives</h2><span>Contextes d'usages au Sart Tilman</span></div>
         </div>
-
+ 
         <div class="mode-card" id="pick-scan">
             <span class="icon">📷</span>
             <div><h2>Mode Scan (AR)</h2><span>Détecte l'œuvre automatiquement via votre caméra</span></div>
         </div>
     </div>
-
+ 
     <div id="ar-container"></div>
     <div id="msg">Initialisation...</div>
     <button id="btn-back">← Retour</button>
@@ -170,7 +170,7 @@
         <button id="btn-perspectives" class="btn">✨ Perspectives</button>
         <button id="btn-scan" class="btn">📷 Scan AR</button>
     </div>
-
+ 
     <div id="carousel-navigation-bar">
         <button class="nav-arrow" id="nav-prev">◂</button>
         <span id="carousel-title">Titre</span>
@@ -186,13 +186,13 @@
             <span class="ac-tag" id="ac-tag">Tag</span>
         </div>
     </div>
-
+ 
     <script type="module">
         import * as THREE from 'three';
         import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-
+ 
         const DATA_INFOS = {
             info: [
                 {
@@ -243,7 +243,7 @@
                 }
             ]
         };
-
+ 
         let currentIndex = 0;
         let currentMode   = null;
         
@@ -258,13 +258,13 @@
         const annotCard       = document.getElementById('annotation-card');
         const carouselBar     = document.getElementById('carousel-navigation-bar');
         const carouselTitle   = document.getElementById('carousel-title');
-
-        let statueModel   = null;
+ 
+        let statueModel  = null;
         let mindarTarget = null;
         let arStarted    = false;
-
+ 
         const showMsg = t => { msgEl.textContent = t; };
-
+ 
         function updateInfoDisplay() {
             const currentDataArray = DATA_INFOS[currentMode];
             if (!currentDataArray || currentDataArray.length === 0) return;
@@ -280,39 +280,39 @@
             
             annotCard.style.display = 'flex';
         }
-
+ 
         document.getElementById('nav-prev').addEventListener('click', (e) => {
             e.stopPropagation();
             const len = DATA_INFOS[currentMode].length;
             currentIndex = (currentIndex - 1 + len) % len;
             updateInfoDisplay();
         });
-
+ 
         document.getElementById('nav-next').addEventListener('click', (e) => {
             e.stopPropagation();
             const len = DATA_INFOS[currentMode].length;
             currentIndex = (currentIndex + 1) % len;
             updateInfoDisplay();
         });
-
+ 
         function initAR() {
             if (mindarTarget) return;
-
+ 
             mindarTarget = new MindARThree({
                 container: arContainer,
                 imageTargetSrc: './targets.mind',
                 uiScanning: 'no',
             });
-
+ 
             const { renderer, camera, scene } = mindarTarget;
-
+ 
             renderer.outputColorSpace = THREE.SRGBColorSpace;
             scene.add(new THREE.AmbientLight(0xffffff, 1.5));
             const dir = new THREE.DirectionalLight(0xffffff, 1.0);
             dir.position.set(2, 4, 5); scene.add(dir);
-
+ 
             const anchor = mindarTarget.addAnchor(0);
-
+ 
             anchor.onTargetFound = () => {
                 if (currentMode === 'scan') {
                     showMsg('✅ Cible trouvée');
@@ -327,41 +327,41 @@
                     showMsg('🔍 Cherche la cible...');
                 }
             };
-
+ 
             const draco = new DRACOLoader();
             draco.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
             const loader = new GLTFLoader();
             loader.setDRACOLoader(draco);
-
+ 
             loader.load('./Statue25.glb', (gltf) => {
                 const model = gltf.scene;
                 const box    = new THREE.Box3().setFromObject(model);
                 const center = box.getCenter(new THREE.Vector3());
                 const size   = box.getSize(new THREE.Vector3());
                 model.position.sub(center);
-
+ 
                 const wrapper = new THREE.Group();
                 wrapper.add(model);
-
+ 
                 const targetWidthMeters = 3.0;
                 const statueRealHeight  = 3.5;
                 const scaleFactor = (statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters;
                 wrapper.scale.setScalar(scaleFactor);
-
+ 
                 wrapper.rotation.x = -Math.PI / 2;
                 wrapper.rotation.y =  Math.PI;
                 wrapper.rotation.z =  Math.PI;
-
+ 
                 statueModel = wrapper;
                 anchor.group.add(statueModel);
-
+ 
             }, undefined, () => showMsg('❌ Erreur GLB'));
-
+ 
             renderer.setAnimationLoop(() => {
                 if (currentMode === 'scan' && arStarted) renderer.render(scene, camera);
             });
         }
-
+ 
         async function switchViewMode(mode) {
             currentMode = mode;
             currentIndex = 0;
@@ -370,9 +370,9 @@
             btnBack.style.display         = 'block';
             controls.style.display        = 'flex';
             updateBtns();
-
+ 
             if (mode === 'scan') {
-                // Mode AR : On affiche le conteneur vidéo et démarre MindAR
+                // Mode AR : On affiche le conteneur vidéo, le texte apparaîtra quand la cible sera trouvée
                 arContainer.style.display = 'block';
                 msgEl.style.display       = 'block';
                 carouselBar.style.display = 'none';
@@ -393,7 +393,7 @@
                     showMsg('🔍 Visez votre image cible');
                 }
             } else {
-                // Modes purement textuels : On éteint STRICTEMENT la caméra AR si elle tournait
+                // Modes purement textuels : On éteint STRICTEMENT la caméra AR et on masque le conteneur vidéo
                 if (arStarted && mindarTarget) {
                     mindarTarget.stop();
                     const video = arContainer.querySelector('video');
@@ -404,22 +404,21 @@
                     arStarted = false;
                 }
                 
-                // Masquage absolu des éléments vidéo de l'AR
                 arContainer.style.display = 'none';
                 msgEl.style.display       = 'none';
                 
-                // Affichage direct des fiches de texte
+                // Affichage direct du texte explicatif pour "Infos" ou "Perspectives"
                 carouselBar.style.display = 'flex';
                 updateInfoDisplay();
             }
         }
-
+ 
         function updateBtns() {
             btnScan.classList.toggle('active', currentMode === 'scan');
             btnInfo.classList.toggle('active', currentMode === 'info');
             btnPersp.classList.toggle('active', currentMode === 'perspectives');
         }
-
+ 
         btnBack.addEventListener('click', () => {
             if (arStarted && mindarTarget) {
                 mindarTarget.stop();
@@ -438,7 +437,7 @@
             carouselBar.style.display     = 'none';
             annotCard.style.display       = 'none';
         });
-
+ 
         document.getElementById('pick-info').addEventListener('click', () => switchViewMode('info'));
         document.getElementById('pick-perspectives').addEventListener('click', () => switchViewMode('perspectives'));
         document.getElementById('pick-scan').addEventListener('click',  () => switchViewMode('scan'));
@@ -449,3 +448,4 @@
     </script>
 </body>
 </html>
+
