@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Patrimoine AR</title>
+    <title>Patrimoine AR — Le Pâtre</title>
     <script type="importmap">
     {
         "imports": {
@@ -14,51 +14,80 @@
     </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, sans-serif; background: #000; }
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, sans-serif; }
 
-        #ar-container { position: fixed; inset: 0; }
+        /* ── Écran d'accueil ── */
+        #selection-screen {
+            position: fixed; inset: 0; background: #0a0a0a;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 24px; z-index: 100000; padding: 2rem;
+        }
+        #selection-screen h1 { color: white; font-size: 22px; font-weight: 600; text-align: center; }
+        #selection-screen p  { color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; margin-top: -16px; }
+        .mode-card {
+            width: 100%; max-width: 360px;
+            background: rgba(79,142,247,0.2);
+            border: 1px solid rgba(79,142,247,0.6);
+            border-radius: 16px; padding: 24px;
+            display: flex; align-items: center; gap: 16px;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+        }
+        .mode-card .icon { font-size: 36px; flex-shrink: 0; }
+        .mode-card h2 { color: white; font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+        .mode-card span { color: rgba(255,255,255,0.55); font-size: 13px; }
+
+        /* ── Vue AR ── */
+        #ar-container { position: fixed; inset: 0; display: none; }
 
         #msg {
             position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.75); color: white;
             padding: 10px 20px; border-radius: 20px; font-size: 14px;
             z-index: 99999; pointer-events: none; text-align: center;
-            max-width: 90%;
+            max-width: 85%; display: none;
+        }
+        #btn-back {
+            position: fixed; top: 16px; left: 16px;
+            background: rgba(0,0,0,0.6); color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 10px 16px; border-radius: 10px;
+            font-size: 14px; cursor: pointer; z-index: 99999;
+            display: none; -webkit-tap-highlight-color: transparent;
         }
 
-        /* ── Barre de navigation style carrousel ── */
+        /* ── Barre carousel ── */
         #carousel-navigation-bar {
             position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
             display: none; align-items: center; justify-content: space-between;
             z-index: 99999; width: 85%; max-width: 320px;
-            background: rgba(0, 0, 0, 0.65);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(0,0,0,0.65);
+            border: 1px solid rgba(255,255,255,0.15);
             border-radius: 30px; padding: 4px;
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 24px rgba(0,0,0,0.4);
         }
         .nav-arrow {
             width: 40px; height: 40px; border: none;
-            background: transparent; color: rgba(255, 255, 255, 0.8);
+            background: transparent; color: rgba(255,255,255,0.8);
             font-size: 18px; font-weight: bold; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            border-radius: 50%; transition: background 0.2s;
-            -webkit-tap-highlight-color: transparent;
+            border-radius: 50%; -webkit-tap-highlight-color: transparent;
         }
-        .nav-arrow:active { background: rgba(255, 255, 255, 0.15); color: #ffc832; }
-        
+        .nav-arrow:active { background: rgba(255,255,255,0.15); color: #ffc832; }
         #carousel-title {
             color: white; font-weight: 600; font-size: 14px;
-            flex: 1; text-align: center; white-space: nowrap;
-            overflow: hidden; text-overflow: ellipsis; padding: 0 8px;
+            flex: 1; text-align: center;
+            white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; padding: 0 8px;
         }
 
-        /* ── Fiche d'annotation Sombre + Or ── */
+        /* ── Fiche annotation ── */
         #annotation-card {
             position: fixed; bottom: 100px; left: 50%;
             transform: translateX(-50%);
-            background: rgba(26, 26, 26, 0.95);
-            border: 1px solid rgba(255, 200, 50, 0.4);
+            background: rgba(26,26,26,0.95);
+            border: 1px solid rgba(255,200,50,0.4);
             border-radius: 12px; padding: 18px;
             width: 90%; max-width: 350px;
             z-index: 100000; display: none;
@@ -73,12 +102,18 @@
         #annotation-card .ac-header {
             display: flex; align-items: center;
             justify-content: space-between; margin-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             padding-bottom: 8px;
         }
-        #annotation-card .ac-title { color: #ffffff; font-size: 16px; font-weight: 700; }
-        #annotation-card .ac-close { color: rgba(255,255,255,0.4); font-size: 18px; cursor: pointer; padding: 2px 6px; }
-        #annotation-card .ac-body { color: rgba(255,255,255,0.85); font-size: 13.5px; line-height: 1.5; }
+        #annotation-card .ac-title { color: #fff; font-size: 16px; font-weight: 700; }
+        #annotation-card .ac-close {
+            color: rgba(255,255,255,0.4); font-size: 18px;
+            cursor: pointer; padding: 2px 6px;
+        }
+        #annotation-card .ac-body {
+            color: rgba(255,255,255,0.85);
+            font-size: 13.5px; line-height: 1.6;
+        }
         #annotation-card .ac-body strong { color: #ffc832; font-weight: 500; }
         #annotation-card .ac-tag {
             display: inline-block; margin-top: 12px;
@@ -87,19 +122,45 @@
             border-radius: 4px; padding: 2px 8px; font-size: 11px;
             font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;
         }
+
+        /* ── Indicateur stabilité ── */
+        #stable-hint {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            background: rgba(52,199,89,0.85); color: white;
+            padding: 8px 18px; border-radius: 20px; font-size: 13px;
+            z-index: 99999; display: none; pointer-events: none;
+        }
     </style>
 </head>
 <body>
 
-    <div id="ar-container"></div>
-    <div id="msg">Initialisation de la caméra...</div>
+    <!-- Écran d'accueil simplifié : 1 seul bouton -->
+    <div id="selection-screen">
+        <h1>🏛️ Patrimoine AR</h1>
+        <p>Musée en plein air du Sart-Tilman</p>
+        <div class="mode-card" id="pick-scan">
+            <span class="icon">📷</span>
+            <div>
+                <h2>Lancer la visite AR</h2>
+                <span>Pointez votre caméra vers l'image cible</span>
+            </div>
+        </div>
+    </div>
 
+    <!-- Vue AR -->
+    <div id="ar-container"></div>
+    <div id="msg">Initialisation...</div>
+    <button id="btn-back">← Retour</button>
+    <div id="stable-hint">📍 Statue verrouillée — déplacez-vous autour</div>
+
+    <!-- Carousel -->
     <div id="carousel-navigation-bar">
         <button class="nav-arrow" id="nav-prev">◂</button>
         <span id="carousel-title">Le Pâtre</span>
         <button class="nav-arrow" id="nav-next">▸</button>
     </div>
-    
+
+    <!-- Fiche -->
     <div id="annotation-card">
         <div class="ac-header">
             <span class="ac-title" id="ac-title">Titre</span>
@@ -115,93 +176,135 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
+        // ── Contenu ────────────────────────────────────────────────
         const DATA_INFOS = [
             {
                 btnLabel: '1. Le Pâtre',
-                title: 'Le Pâtre (Fiche technique)',
-                body: '<strong>Artiste :</strong> Idel Ianchelevici<br><strong>Année :</strong> 1956<br><strong>Matériaux :</strong> Bronze<br><strong>Dimensions :</strong> Hauteur : 340 cm · Longueur : 93 cm · Largeur : 54,5 cm.',
+                title: 'Le Pâtre — Fiche technique',
+                body: '<strong>Artiste :</strong> Idel Ianchelevici<br><strong>Année :</strong> 1956<br><strong>Matériaux :</strong> Bronze<br><strong>Dimensions :</strong> H. 340 cm · L. 93 cm · l. 54,5 cm.',
                 tag: 'Général · Statuaire'
             },
             {
                 btnLabel: '2. Origine du projet',
                 title: 'Le projet colonial (1/2)',
-                body: 'Au milieu des années 1950, l’État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa) dédié à l\'explorateur Stanley. Mais une fois sur place, le sculpteur bouleverse le projet : il choisit de créer de monumentales <strong>statues en ronde-bosse</strong>.',
+                body: 'Au milieu des années 1950, l\'État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa). Mais une fois sur place, le sculpteur bouleverse le projet : il choisit de créer de monumentales <strong>statues en ronde-bosse</strong>.',
                 tag: 'Histoire · Contexte'
             },
             {
                 btnLabel: '3. Un symbole fort',
                 title: 'La dignité célébrée (2/2)',
-                body: 'Ianchelevici sculpte trois piliers de l’économie traditionnelle : <strong>le pâtre, le pêcheur et le chasseur</strong>. Loin des clichés coloniaux de l\'époque, il magnifie l\'homme africain dans une <strong>dignité enfin reconnue</strong>. Preuve de la force du symbole : alors que les statues coloniales ont été déboulonnées à Kinshasa, ces trois œuvres y sont toujours fièrement en place.',
+                body: 'Ianchelevici sculpte trois piliers de l\'économie traditionnelle : <strong>le pâtre, le pêcheur et le chasseur</strong>. Loin des clichés coloniaux, il magnifie l\'homme africain dans une <strong>dignité enfin reconnue</strong>. Ces trois œuvres sont toujours fièrement en place à Kinshasa.',
                 tag: 'Histoire · Symbole'
             },
             {
                 btnLabel: '4. L\'Artiste',
-                title: 'Idel Ianchelevici (1909-1994)',
-                body: 'Arrivé à Liège en 1928, il décroche le 1er prix de statuaire des Beaux-Arts en 1933. Installé ensuite en région parisienne, sa carrière est jalonnée de chefs-d’œuvre monumentaux acclamés à travers l\'Europe, comme <strong>Le Plongeur</strong> (Liège, 1939) ou <strong>Le Résistant</strong> (Fort de Breendonk, 1947).',
+                title: 'Idel Ianchelevici (1909–1994)',
+                body: 'Arrivé à Liège en 1928, il décroche le 1er prix de statuaire des Beaux-Arts en 1933. Sa carrière est jalonnée de chefs-d\'œuvre monumentaux : <strong>Le Plongeur</strong> (Liège, 1939), <strong>Le Résistant</strong> (Fort de Breendonk, 1947).',
                 tag: 'Biographie · Maître'
             },
             {
                 btnLabel: '5. Prix Triennal',
                 title: 'Mise à l\'honneur',
-                body: 'Depuis 1997, le Musée en plein air perpétue la mémoire et le génie du sculpteur en organisant le prestigieux <strong>Prix Triennal Ianchelevici</strong>, créé à l’initiative de l’ASBL « Les Amis de Ianchelevici ».',
+                body: 'Depuis 1997, le Musée en plein air perpétue la mémoire du sculpteur en organisant le prestigieux <strong>Prix Triennal Ianchelevici</strong>, créé à l\'initiative de l\'ASBL « Les Amis de Ianchelevici ».',
                 tag: 'Héritage · Distinction'
             }
         ];
 
         let currentIndex = 0;
-        
-        const arContainer   = document.getElementById('ar-container');
-        const msgEl         = document.getElementById('msg');
-        const annotCard     = document.getElementById('annotation-card');
-        const carouselBar   = document.getElementById('carousel-navigation-bar');
-        const carouselTitle = document.getElementById('carousel-title');
 
-        let statueModel  = null;
-        let mindarTarget = null;
-        let camera       = null;
-        let renderer     = null;
-        let anchor       = null;
+        // ── UI refs ────────────────────────────────────────────────
+        const selectionScreen = document.getElementById('selection-screen');
+        const arContainer     = document.getElementById('ar-container');
+        const msgEl           = document.getElementById('msg');
+        const btnBack         = document.getElementById('btn-back');
+        const annotCard       = document.getElementById('annotation-card');
+        const carouselBar     = document.getElementById('carousel-navigation-bar');
+        const carouselTitle   = document.getElementById('carousel-title');
+        const stableHint      = document.getElementById('stable-hint');
+
+        let mindarTarget  = null;
+        let camera        = null;
+        let renderer      = null;
+        let anchor        = null;
+        let statueModel   = null;
+        let scene         = null;
+
+        // ── Pose figée ────────────────────────────────────────────
+        // Stocke la dernière position/quaternion connue de l'ancre
+        let frozenMatrix  = null;  // THREE.Matrix4 figée
+        let isFrozen      = false;
+        let frozenGroup   = null;  // groupe dans la scène (pas dans l'ancre)
 
         const showMsg = t => { msgEl.textContent = t; };
 
+        // ── Carousel / fiche ──────────────────────────────────────
         function updateInfoDisplay() {
-            const data = DATA_INFOS[currentIndex];
-            carouselTitle.textContent = data.btnLabel;
-            
-            document.getElementById('ac-title').innerHTML = data.title;
-            document.getElementById('ac-body').innerHTML  = data.body;
-            document.getElementById('ac-tag').textContent   = data.tag;
-            
+            const d = DATA_INFOS[currentIndex];
+            carouselTitle.textContent = d.btnLabel;
+            document.getElementById('ac-title').innerHTML = d.title;
+            document.getElementById('ac-body').innerHTML  = d.body;
+            document.getElementById('ac-tag').textContent = d.tag;
             annotCard.style.display = 'block';
         }
-        
         function closeInfoCard() { annotCard.style.display = 'none'; }
 
         document.getElementById('ac-close').addEventListener('click', closeInfoCard);
-
-        document.getElementById('nav-prev').addEventListener('click', (e) => {
+        document.getElementById('nav-prev').addEventListener('click', e => {
             e.stopPropagation();
             currentIndex = (currentIndex - 1 + DATA_INFOS.length) % DATA_INFOS.length;
             updateInfoDisplay();
         });
-
-        document.getElementById('nav-next').addEventListener('click', (e) => {
+        document.getElementById('nav-next').addEventListener('click', e => {
             e.stopPropagation();
             currentIndex = (currentIndex + 1) % DATA_INFOS.length;
             updateInfoDisplay();
         });
+        carouselBar.addEventListener('click', e => { e.stopPropagation(); updateInfoDisplay(); });
 
-        carouselBar.addEventListener('click', (e) => {
-            e.stopPropagation();
-            updateInfoDisplay();
-        });
+        // ── Figer la statue dans la scène ────────────────────────
+        // Principe : on lit la matrice monde de anchor.group,
+        // on crée un groupe "frozen" dans la scène avec cette même
+        // transform, et on y déplace le modèle.
+        // Ensuite MindAR ne contrôle plus la position du modèle.
+        function freezeStatue() {
+            if (isFrozen || !statueModel) return;
 
-        // Fermer la carte d'info en tapant l'arrière-plan de la caméra
-        arContainer.addEventListener('click', () => {
-            if (annotCard.style.display === 'block') closeInfoCard();
-        });
+            // Lire la position/rotation monde actuelle de l'ancre
+            anchor.group.updateWorldMatrix(true, false);
+            frozenMatrix = anchor.group.matrixWorld.clone();
 
-        async function initAR() {
+            // Créer un groupe figé dans la scène
+            frozenGroup = new THREE.Group();
+            frozenGroup.applyMatrix4(frozenMatrix);
+            scene.add(frozenGroup);
+
+            // Déplacer le modèle de l'ancre vers le groupe figé
+            anchor.group.remove(statueModel);
+
+            // Réinitialiser la transform locale du modèle
+            // (elle est déjà intégrée dans frozenMatrix)
+            statueModel.position.set(0, 0, 0);
+            frozenGroup.add(statueModel);
+
+            isFrozen = true;
+
+            // Feedback visuel
+            stableHint.style.display = 'block';
+            setTimeout(() => { stableHint.style.display = 'none'; }, 3000);
+            showMsg('🔭 Déplacez-vous librement autour de la statue');
+        }
+
+        function unfreezeStatue() {
+            if (!isFrozen || !statueModel) return;
+            frozenGroup.remove(statueModel);
+            scene.remove(frozenGroup);
+            anchor.group.add(statueModel);
+            isFrozen = false;
+            frozenGroup = null;
+        }
+
+        // ── Init AR ───────────────────────────────────────────────
+        function initAR() {
             mindarTarget = new MindARThree({
                 container: arContainer,
                 imageTargetSrc: './targets.mind',
@@ -210,29 +313,38 @@
 
             renderer = mindarTarget.renderer;
             camera   = mindarTarget.camera;
-            const scene = mindarTarget.scene;
+            scene    = mindarTarget.scene;
 
             renderer.outputColorSpace = THREE.SRGBColorSpace;
             scene.add(new THREE.AmbientLight(0xffffff, 1.5));
-            const dir = new THREE.DirectionalLight(0xffffff, 1.0);
-            dir.position.set(2, 4, 5); scene.add(dir);
+            const dir1 = new THREE.DirectionalLight(0xffffff, 1.0);
+            dir1.position.set(2, 4, 5); scene.add(dir1);
             const dir2 = new THREE.DirectionalLight(0xffffff, 0.5);
             dir2.position.set(-2, -2, -3); scene.add(dir2);
 
             anchor = mindarTarget.addAnchor(0);
 
+            // ── Cible trouvée ─────────────────────────────────────
             anchor.onTargetFound = () => {
-                showMsg('✅ Cible trouvée');
-                carouselBar.style.display = 'flex';
-                updateInfoDisplay();
+                showMsg('✅ Cible détectée — restez immobile 1 sec…');
+
+                // Attendre 1 seconde que le tracking se stabilise,
+                // puis figer la statue dans la scène
+                setTimeout(() => {
+                    freezeStatue();
+                    carouselBar.style.display = 'flex';
+                    updateInfoDisplay();
+                }, 1000);
             };
 
+            // ── Cible perdue — le modèle reste figé ──────────────
             anchor.onTargetLost = () => {
-                closeInfoCard();
-                carouselBar.style.display = 'none';
-                showMsg('🔍 Cherche la cible...');
+                // On ne fait RIEN : la statue reste à sa place figée
+                // L'utilisateur peut continuer à tourner autour
+                if (!isFrozen) showMsg('🔍 Cherche la cible...');
             };
 
+            // ── Chargement GLB ────────────────────────────────────
             const draco = new DRACOLoader();
             draco.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
             const loader = new GLTFLoader();
@@ -248,10 +360,7 @@
                 const wrapper = new THREE.Group();
                 wrapper.add(model);
 
-                // Calibré pour une photo / feuille A4 imprimée (0.2m de large) pour donner l'échelle réelle (3.5m)
-                const targetWidthMeters = 0.2;
-                const statueRealHeight  = 3.5;
-                const scaleFactor = (statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters;
+                const scaleFactor = 3.0 / Math.max(size.x, size.y, size.z);
                 wrapper.scale.setScalar(scaleFactor);
 
                 wrapper.rotation.x = -Math.PI / 2;
@@ -260,30 +369,64 @@
 
                 statueModel = wrapper;
                 anchor.group.add(statueModel);
-
-                startCamera();
+                showMsg('🔍 Visez l\'image cible');
 
             }, undefined, () => showMsg('❌ Erreur chargement GLB'));
+
+            // ── Tap : dégeler/regeler ─────────────────────────────
+            // Double-tap pour remettre la statue à la position courante
+            let lastTap = 0;
+            arContainer.addEventListener('click', (e) => {
+                // Simple tap : fermer la fiche
+                if (annotCard.style.display === 'block') {
+                    closeInfoCard(); return;
+                }
+
+                // Double-tap : recaler la statue sur la cible actuelle
+                const now = Date.now();
+                if (now - lastTap < 350) {
+                    if (isFrozen) unfreezeStatue();
+                    setTimeout(() => freezeStatue(), 800);
+                    showMsg('📐 Recalage en cours…');
+                }
+                lastTap = now;
+            });
 
             renderer.setAnimationLoop(() => {
                 renderer.render(scene, camera);
             });
         }
 
-        async function startCamera() {
+        // ── Lancement ─────────────────────────────────────────────
+        async function launchAR() {
+            selectionScreen.style.display = 'none';
+            arContainer.style.display     = 'block';
+            msgEl.style.display           = 'block';
+            btnBack.style.display         = 'block';
+
+            showMsg('📷 Démarrage caméra...');
+            initAR();
             try {
-                showMsg('📷 Initialisation caméra...');
                 await mindarTarget.start();
-                // Supprime d'éventuelles superpositions UI natives de MindAR
-                document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
-                showMsg('🔍 Visez votre image cible');
-            } catch (err) {
-                showMsg('❌ Accès caméra refusé ou bloqué');
+                document.querySelectorAll('.mindar-ui-overlay')
+                    .forEach(el => el.style.display = 'none');
+                showMsg('🔍 Visez l\'image cible');
+            } catch {
+                showMsg('❌ Caméra bloquée — HTTPS requis');
             }
         }
 
-        // Lancement immédiat au chargement de la page
-        window.addEventListener('DOMContentLoaded', initAR);
+        btnBack.addEventListener('click', () => {
+            selectionScreen.style.display = 'flex';
+            arContainer.style.display     = 'none';
+            msgEl.style.display           = 'none';
+            btnBack.style.display         = 'none';
+            carouselBar.style.display     = 'none';
+            stableHint.style.display      = 'none';
+            closeInfoCard();
+        });
+
+        document.getElementById('pick-scan').addEventListener('click', launchAR);
     </script>
 </body>
 </html>
