@@ -20,22 +20,24 @@
             position: fixed; inset: 0; background: #0a0a0a;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            gap: 24px; z-index: 100000; padding: 2rem;
+            gap: 16px; z-index: 100000; padding: 2rem;
+            overflow-y: auto;
         }
-        #selection-screen h1 { color: white; font-size: 22px; font-weight: 600; text-align: center; }
-        #selection-screen p  { color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; margin-top: -16px; }
+        #selection-screen h1 { color: white; font-size: 24px; font-weight: 600; text-align: center; margin-bottom: 4px; }
+        #selection-screen p  { color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; margin-bottom: 12px; }
         .mode-card {
             width: 100%; max-width: 360px;
             background: rgba(255,255,255,0.07);
             border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 16px; padding: 20px 24px;
+            border-radius: 16px; padding: 18px 22px;
             display: flex; align-items: center; gap: 16px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
+            transition: background 0.2s, border-color 0.2s;
         }
-        .mode-card.highlight { background: rgba(79,142,247,0.2); border-color: rgba(79,142,247,0.6); }
-        .mode-card .icon { font-size: 32px; flex-shrink: 0; }
+        .mode-card.highlight { background: rgba(79,142,247,0.15); border-color: rgba(79,142,247,0.5); }
+        .mode-card .icon { font-size: 30px; flex-shrink: 0; }
         .mode-card h2 { color: white; font-size: 16px; font-weight: 600; margin: 0 0 4px; }
-        .mode-card span { color: rgba(255,255,255,0.5); font-size: 13px; }
+        .mode-card span { color: rgba(255,255,255,0.5); font-size: 13px; line-height: 1.3; }
 
         #ar-container { position: fixed; inset: 0; display: none; }
 
@@ -57,14 +59,16 @@
         
         #controls {
             position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
-            display: none; gap: 12px; z-index: 99999;
+            display: none; gap: 8px; z-index: 99999; width: 90%; max-width: 360px;
+            justify-content: center;
         }
         .btn {
             background: rgba(0,0,0,0.6); color: rgba(255,255,255,0.7);
             border: 1px solid rgba(255,255,255,0.2);
-            padding: 8px 16px; border-radius: 20px;
-            font-weight: 600; font-size: 13px; cursor: pointer;
+            padding: 8px 14px; border-radius: 20px;
+            font-weight: 600; font-size: 12px; cursor: pointer;
             -webkit-tap-highlight-color: transparent;
+            flex: 1; text-align: center;
         }
         .btn.active { background: rgba(79,142,247,0.85); border-color: transparent; color: white; }
 
@@ -78,7 +82,7 @@
         }
         @keyframes pulse-hint { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 
-        /* ── Barre de navigation style Sketchfab ── */
+        /* ── Barre de navigation ── */
         #carousel-navigation-bar {
             position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
             display: none; align-items: center; justify-content: space-between;
@@ -151,16 +155,27 @@
 </head>
 <body>
 
+    <!-- Écran d'accueil réorganisé -->
     <div id="selection-screen">
         <h1>🏛️ Patrimoine AR</h1>
-        <p>Choisissez votre mode de visualisation</p>
-        <div class="mode-card" id="pick-scan">
-            <span class="icon">📷</span>
-            <div><h2>Mode Scan</h2><span>Détecte automatiquement l'image cible</span></div>
-        </div>
+        <p>Musée en plein air du Sart Tilman</p>
+        
+        <!-- 1. Informations en haut -->
         <div class="mode-card highlight" id="pick-info">
             <span class="icon">📍</span>
-            <div><h2>Informations</h2><span>Où nous trouver & historique du lieu</span></div>
+            <div><h2>Informations</h2><span>Guide d'utilisation et aide à la navigation</span></div>
+        </div>
+
+        <!-- 2. Perspectives (Nouveau bouton contextuel) -->
+        <div class="mode-card" id="pick-perspectives">
+            <span class="icon">✨</span>
+            <div><h2>Perspectives</h2><span>Pourquoi l'AR au Sart Tilman ? Contextes d'usage</span></div>
+        </div>
+
+        <!-- 3. Mode Scan en bas -->
+        <div class="mode-card" id="pick-scan">
+            <span class="icon">📷</span>
+            <div><h2>Mode Scan</h2><span>Détecte l'œuvre automatiquement via la cible</span></div>
         </div>
     </div>
 
@@ -169,15 +184,16 @@
     <button id="btn-back">← Retour</button>
     
     <div id="controls">
-        <button id="btn-scan" class="btn">📷 Scan</button>
         <button id="btn-info" class="btn">📍 Infos</button>
+        <button id="btn-perspectives" class="btn">✨ Perspectives</button>
+        <button id="btn-scan" class="btn">📷 Scan</button>
     </div>
     
-    <div id="tap-hint">👆 Touchez l'écran pour afficher la statue en mode libre</div>
+    <div id="tap-hint">👆 Touchez l'écran pour faire apparaître l'élément visuel</div>
 
     <div id="carousel-navigation-bar">
         <button class="nav-arrow" id="nav-prev">◂</button>
-        <span id="carousel-title">Le Pâtre</span>
+        <span id="carousel-title">Titre</span>
         <button class="nav-arrow" id="nav-next">▸</button>
     </div>
     
@@ -196,38 +212,57 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-        const DATA_INFOS = [
-            {
-                btnLabel: '1. Le Pâtre',
-                title: 'Le Pâtre (Fiche technique)',
-                body: '<strong>Artiste :</strong> Idel Ianchelevici<br><strong>Année :</strong> 1956<br><strong>Matériaux :</strong> Bronze<br><strong>Dimensions :</strong> Hauteur : 340 cm · Longueur : 93 cm · Largeur : 54,5 cm.',
-                tag: 'Général · Statuaire'
-            },
-            {
-                btnLabel: '2. Origine du projet',
-                title: 'Le projet colonial (1/2)',
-                body: 'Au milieu des années 1950, l’État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa) dédié à l\'explorateur Stanley. Mais une fois sur place, le sculpteur bouleverse le projet : il choisit de créer de monumentales <strong>statues en ronde-bosse</strong>.',
-                tag: 'Histoire · Contexte'
-            },
-            {
-                btnLabel: '3. Un symbole fort',
-                title: 'La dignité célébrée (2/2)',
-                body: 'Ianchelevici sculpte trois piliers de l’économie traditionnelle : <strong>le pâtre, le pêcheur et le chasseur</strong>. Loin des clichés coloniaux de l\'époque, il magnifie l\'homme africain dans une <strong>dignité enfin reconnue</strong>. Preuve de la force du symbole : alors que les statues coloniales ont été déboulonnées à Kinshasa, ces trois œuvres y sont toujours fièrement en place.',
-                tag: 'Histoire · Symbole'
-            },
-            {
-                btnLabel: '4. L\'Artiste',
-                title: 'Idel Ianchelevici (1909-1994)',
-                body: 'Arrivé à Liège en 1928, il décroche le 1er prix de statuaire des Beaux-Arts en 1933. Installé ensuite en région parisienne, sa carrière est jalonnée de chefs-d’œuvre monumentaux acclamés à travers l\'Europe, comme <strong>Le Plongeur</strong> (Liège, 1939) ou <strong>Le Résistant</strong> (Fort de Breendonk, 1947).',
-                tag: 'Biographie · Maître'
-            },
-            {
-                btnLabel: '5. Prix Triennal',
-                title: 'Mise à l\'honneur',
-                body: 'Depuis 1997, le Musée en plein air perpétue la mémoire et le génie du sculpteur en organisant le prestigieux <strong>Prix Triennal Ianchelevici</strong>, créé à l’initiative de l’ASBL « Les Amis de Ianchelevici ».',
-                tag: 'Héritage · Distinction'
-            }
-        ];
+        // Base de données restructurée intégrant l'aide et les perspectives du Sart Tilman
+        const DATA_INFOS = {
+            info: [
+                {
+                    btnLabel: '1. Guide de l\'App',
+                    title: '📱 Mode d\'emploi de l\'application',
+                    body: 'Bienvenue ! Cette application vous permet de découvrir les secrets des œuvres d\'art du Sart Tilman en Réalité Augmentée.<br><br><strong>Comment faire ?</strong><br>1. Naviguez avec les flèches ◂ ▸ de la barre du bas pour lire les différentes fiches.<br>2. En mode libre, <strong>touchez l\'écran de votre téléphone</strong> pour faire apparaître ou recentrer le modèle 3D face à vous.',
+                    tag: 'Aide · Navigation'
+                },
+                {
+                    btnLabel: '2. Fiche Technique',
+                    title: 'Le Pâtre (Fiche technique)',
+                    body: '<strong>Artiste :</strong> Idel Ianchelevici<br><strong>Année :</strong> 1956<br><strong>Matériaux :</strong> Bronze<br><strong>Dimensions :</strong> Hauteur : 340 cm · Longueur : 93 cm · Largeur : 54,5 cm.',
+                    tag: 'Général · Statuaire'
+                },
+                {
+                    btnLabel: '3. Origine',
+                    title: 'Le projet colonial (1/2)',
+                    body: 'Au milieu des années 1950, l’État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa) dédié à l\'explorateur Stanley. Le sculpteur bouleverse le projet et choisit de créer des <strong>statues en ronde-bosse</strong>.',
+                    tag: 'Histoire · Contexte'
+                }
+            ],
+            perspectives: [
+                {
+                    btnLabel: '1. Médiation culturelle',
+                    title: '🏛️ Un musée à ciel ouvert réinventé',
+                    body: 'Le Musée en plein air du Sart Tilman est immense et intégré à la nature. L\'intégration de la réalité augmentée (AR) permet une <strong>médiation culturelle interactive</strong> sur place. Elle résout le défi de l\'affichage de panneaux physiques en forêt tout en enrichissant le parcours des promeneurs.',
+                    tag: 'Sart Tilman · Innovation'
+                },
+                {
+                    btnLabel: '2. Préservation digitale',
+                    title: '⏳ Conserver et documenter',
+                    body: 'Les sculptures en extérieur subissent les aléas climatiques. Numériser ces œuvres et les intégrer en AR permet de documenter leur état à une époque précise, offrant un jalon de <strong>préservation du patrimoine immatériel et numérique</strong> accessible à tous.',
+                    tag: 'Patrimoine · Futur'
+                },
+                {
+                    btnLabel: '3. Accessibilité universelle',
+                    title: '🌍 L\'art hors des murs du musée',
+                    body: 'L\'AR permet de manipuler, zoomer et tourner virtuellement autour d\'une œuvre parfois monumentale ou inaccessible. C\'est un outil pédagogique puissant pour les écoles, les chercheurs ou les personnes à mobilité réduite désireuses de découvrir la collection liégeoise.',
+                    tag: 'Inclusion · Éducation'
+                }
+            ],
+            scan: [
+                {
+                    btnLabel: '1. Chef-d\'œuvre',
+                    title: 'Le Pâtre (Numérisation)',
+                    body: 'En orientant votre appareil vers la cible graphique imprimée ou le panneau de l\'œuvre, le modèle 3D du Pâtre vient se superposer à son emplacement idéal pour révéler sa structure d\'origine.',
+                    tag: 'Scan · Reconnaissance'
+                }
+            ]
+        };
 
         let currentIndex = 0;
         
@@ -238,6 +273,7 @@
         const controls        = document.getElementById('controls');
         const btnScan         = document.getElementById('btn-scan');
         const btnInfo         = document.getElementById('btn-info');
+        const btnPersp        = document.getElementById('btn-perspectives');
         const tapHint         = document.getElementById('tap-hint');
         const annotCard       = document.getElementById('annotation-card');
         const carouselBar     = document.getElementById('carousel-navigation-bar');
@@ -255,7 +291,13 @@
         const showMsg = t => { msgEl.textContent = t; };
 
         function updateInfoDisplay() {
-            const data = DATA_INFOS[currentIndex];
+            const currentDataArray = DATA_INFOS[currentMode];
+            if (!currentDataArray || currentDataArray.length === 0) return;
+            
+            // Sécurité index
+            if (currentIndex >= currentDataArray.length) currentIndex = 0;
+            
+            const data = currentDataArray[currentIndex];
             carouselTitle.textContent = data.btnLabel;
             
             document.getElementById('ac-title').innerHTML = data.title;
@@ -271,13 +313,15 @@
 
         document.getElementById('nav-prev').addEventListener('click', (e) => {
             e.stopPropagation();
-            currentIndex = (currentIndex - 1 + DATA_INFOS.length) % DATA_INFOS.length;
+            const len = DATA_INFOS[currentMode].length;
+            currentIndex = (currentIndex - 1 + len) % len;
             updateInfoDisplay();
         });
 
         document.getElementById('nav-next').addEventListener('click', (e) => {
             e.stopPropagation();
-            currentIndex = (currentIndex + 1) % DATA_INFOS.length;
+            const len = DATA_INFOS[currentMode].length;
+            currentIndex = (currentIndex + 1) % len;
             updateInfoDisplay();
         });
 
@@ -350,16 +394,7 @@
 
                 statueModel = wrapper;
 
-                // CORRECTION : On gère la visibilité initiale sans forcer l'affichage des fiches d'UI immédiatement
-                if (currentMode === 'scan') {
-                    anchor.group.add(statueModel);
-                    showMsg('🔍 Visez votre image cible');
-                } else if (currentMode === 'info') {
-                    manualGroup.add(statueModel);
-                    statueModel.visible = false;
-                    tapHint.style.display = 'block';
-                    showMsg('');
-                }
+                handleModelPlacementForMode(currentMode);
 
             }, undefined, () => showMsg('❌ Erreur GLB'));
 
@@ -367,7 +402,7 @@
                 if (annotCard.style.display === 'block') {
                     closeInfoCard(); return;
                 }
-                if (currentMode !== 'info' || !statueModel) return;
+                if (currentMode === 'scan' || !statueModel) return;
 
                 const camDir = new THREE.Vector3(0, 0, -1);
                 camDir.applyQuaternion(camera.quaternion);
@@ -388,40 +423,8 @@
             });
         }
 
-        async function launchAR(mode) {
-            selectionScreen.style.display = 'none';
-            arContainer.style.display     = 'block';
-            msgEl.style.display           = 'block';
-            btnBack.style.display         = 'block';
-            controls.style.display        = 'flex';
-            currentMode = mode;
-            updateBtns();
-
-            if (!arStarted) {
-                showMsg('📷 Démarrage caméra...');
-                initAR();
-                try {
-                    await mindarTarget.start();
-                    document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
-                    arStarted = true;
-                    if (mode === 'scan') showMsg('🔍 Visez votre image cible');
-                    else { showMsg(''); tapHint.style.display = 'block'; }
-                } catch {
-                    showMsg('❌ Caméra bloquée');
-                }
-            } else {
-                // Si l'AR a déjà démarré précédemment, on applique le mode choisi proprement
-                setMode(mode);
-            }
-        }
-
-        function setMode(mode) {
-            currentMode = mode;
-            updateBtns();
-            closeInfoCard();
-            carouselBar.style.display = 'none';
+        function handleModelPlacementForMode(mode) {
             if (!statueModel) return;
-
             if (mode === 'scan') {
                 manualGroup.remove(statueModel);
                 anchor.group.add(statueModel);
@@ -437,9 +440,46 @@
             }
         }
 
+        async function launchAR(mode) {
+            selectionScreen.style.display = 'none';
+            arContainer.style.display     = 'block';
+            msgEl.style.display           = 'block';
+            btnBack.style.display         = 'block';
+            controls.style.display        = 'flex';
+            currentMode = mode;
+            currentIndex = 0;
+            updateBtns();
+
+            if (!arStarted) {
+                showMsg('📷 Démarrage caméra...');
+                initAR();
+                try {
+                    await mindarTarget.start();
+                    document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
+                    arStarted = true;
+                    if (mode === 'scan') showMsg('🔍 Visez votre image cible');
+                    else { showMsg(''); tapHint.style.display = 'block'; }
+                } catch {
+                    showMsg('❌ Caméra bloquée');
+                }
+            } else {
+                setMode(mode);
+            }
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            currentIndex = 0;
+            updateBtns();
+            closeInfoCard();
+            carouselBar.style.display = 'none';
+            handleModelPlacementForMode(mode);
+        }
+
         function updateBtns() {
             btnScan.classList.toggle('active', currentMode === 'scan');
             btnInfo.classList.toggle('active', currentMode === 'info');
+            btnPersp.classList.toggle('active', currentMode === 'perspectives');
         }
 
         btnBack.addEventListener('click', () => {
@@ -453,10 +493,13 @@
             closeInfoCard();
         });
 
-        document.getElementById('pick-scan').addEventListener('click',  () => launchAR('scan'));
         document.getElementById('pick-info').addEventListener('click', () => launchAR('info'));
+        document.getElementById('pick-perspectives').addEventListener('click', () => launchAR('perspectives'));
+        document.getElementById('pick-scan').addEventListener('click',  () => launchAR('scan'));
+        
         btnScan.addEventListener('click',  () => setMode('scan'));
         btnInfo.addEventListener('click', () => setMode('info'));
+        btnPersp.addEventListener('click', () => setMode('perspectives'));
     </script>
 </body>
 </html>
