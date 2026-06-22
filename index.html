@@ -56,7 +56,6 @@
             display: none; -webkit-tap-highlight-color: transparent;
         }
 
-        /* Réticule de placement */
         #reticle-hint {
             position: fixed; bottom: 140px; left: 50%; transform: translateX(-50%);
             background: rgba(255,255,255,0.15); color: white;
@@ -67,7 +66,6 @@
         }
         @keyframes pulse-hint { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-        /* Bouton placer */
         #btn-place {
             position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
             background: rgba(52,199,89,0.9); color: white;
@@ -78,7 +76,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Carousel */
         #carousel-navigation-bar {
             position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
             display: none; align-items: center; justify-content: space-between;
@@ -103,7 +100,6 @@
             text-overflow: ellipsis; padding: 0 8px;
         }
 
-        /* Fiche */
         #annotation-card {
             position: fixed; bottom: 100px; left: 50%;
             transform: translateX(-50%);
@@ -181,7 +177,6 @@
         import { GLTFLoader }  from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js';
 
-        // ── Contenu ────────────────────────────────────────────────
         const DATA_INFOS = [
             {
                 btnLabel: '1. Le Pâtre',
@@ -217,7 +212,6 @@
 
         let currentIndex = 0;
 
-        // ── UI ─────────────────────────────────────────────────────
         const selectionScreen = document.getElementById('selection-screen');
         const arCanvas        = document.getElementById('ar-canvas');
         const msgEl           = document.getElementById('msg');
@@ -254,7 +248,6 @@
         });
         carouselBar.addEventListener('click', e => { e.stopPropagation(); updateInfoDisplay(); });
 
-        // ── Three.js + WebXR ───────────────────────────────────────
         let renderer, scene, camera;
         let reticleMesh, statueModel;
         let hitTestSource     = null;
@@ -270,7 +263,7 @@
             renderer.outputColorSpace = THREE.SRGBColorSpace;
 
             scene  = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
 
             scene.add(new THREE.AmbientLight(0xffffff, 1.5));
             const dir1 = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -278,13 +271,15 @@
             const dir2 = new THREE.DirectionalLight(0xffffff, 0.5);
             dir2.position.set(-2, -2, -3); scene.add(dir2);
 
-            // Réticule (anneau au sol qui suit le hit-test)
+            // Réticule amélioré
             const ring = new THREE.RingGeometry(0.08, 0.12, 32);
             ring.rotateX(-Math.PI / 2);
             reticleMesh = new THREE.Mesh(
                 ring,
                 new THREE.MeshBasicMaterial({ color: 0x4f8ef7, side: THREE.DoubleSide })
             );
+            // Empêche la matrice de Three.js d'écraser la matrice WebXR native
+            reticleMesh.matrixAutoUpdate = false; 
             reticleMesh.visible = false;
             scene.add(reticleMesh);
         }
@@ -301,22 +296,20 @@
                 const center = box.getCenter(new THREE.Vector3());
                 const size   = box.getSize(new THREE.Vector3());
                 model.position.sub(center);
-                // Reposer sur le sol (y = 0)
                 model.position.y += size.y / 2;
 
                 const wrapper = new THREE.Group();
                 wrapper.add(model);
 
-                // Scale réel : statue de 3.4m → taille monde en mètres
                 const scaleFactor = 3.4 / Math.max(size.x, size.y, size.z);
                 wrapper.scale.setScalar(scaleFactor);
 
-                // Corrections orientation Metashape
                 wrapper.rotation.x = -Math.PI / 2;
                 wrapper.rotation.y =  Math.PI;
                 wrapper.rotation.z =  Math.PI;
 
                 statueModel = wrapper;
+                statueModel.matrixAutoUpdate = false; // Nécessaire pour l'ancrage de matrice direct
                 statueModel.visible = false;
                 scene.add(statueModel);
 
@@ -335,26 +328,23 @@
             initThree();
             loadStatue();
 
-            // Afficher UI AR
             selectionScreen.style.display = 'none';
             arCanvas.style.display        = 'block';
             msgEl.style.display           = 'block';
             btnBack.style.display         = 'block';
             showMsg('📷 Démarrage AR...');
 
-            // Demander session WebXR avec hit-test
             xrSession = await navigator.xr.requestSession('immersive-ar', {
                 requiredFeatures: ['hit-test'],
                 optionalFeatures: ['dom-overlay'],
                 domOverlay: { root: document.body }
             });
 
-            renderer.xr.setReferenceSpaceType('local');
+            // "local-floor" force WebXR à traquer les pas et déplacements réels dans l'espace physique
+            renderer.xr.setReferenceSpaceType('local-floor');
             await renderer.xr.setSession(xrSession);
 
             xrSession.addEventListener('end', onSessionEnd);
-
-            // Boucle de rendu WebXR
             renderer.setAnimationLoop(onXRFrame);
         }
 
@@ -363,7 +353,6 @@
 
             const refSpace = renderer.xr.getReferenceSpace();
 
-            // ── Hit-test : trouver le sol ──────────────────────────
             if (!statueAnchored) {
                 if (!hitTestRequested) {
                     hitTestRequested = true;
@@ -378,12 +367,9 @@
                     if (hits.length > 0) {
                         const pose = hits[0].getPose(refSpace);
                         reticleMesh.visible = true;
+                        // On applique directement la matrice de transformation spatiale de WebXR
                         reticleMesh.matrix.fromArray(pose.transform.matrix);
-                        reticleMesh.matrix.decompose(
-                            reticleMesh.position,
-                            reticleMesh.quaternion,
-                            reticleMesh.scale
-                        );
+                        
                         btnPlace.style.display = 'block';
                         showMsg('✅ Surface détectée');
                     } else {
@@ -397,24 +383,21 @@
             renderer.render(scene, camera);
         }
 
-        // ── Bouton "Poser la statue" ───────────────────────────────
         btnPlace.addEventListener('click', () => {
             if (!reticleMesh.visible || !statueModel || statueAnchored) return;
 
-            // Placer la statue là où est le réticule
-            statueModel.position.copy(reticleMesh.position);
-            statueModel.quaternion.copy(reticleMesh.quaternion);
+            // Transfère la matrice de position du monde réel du réticule à la statue
+            statueModel.matrix.copy(reticleMesh.matrix);
             statueModel.visible = true;
             statueAnchored = true;
 
-            // Cacher réticule + bouton, montrer carousel
             reticleMesh.visible       = false;
             btnPlace.style.display    = 'none';
             reticleHint.style.display = 'none';
             carouselBar.style.display = 'flex';
             updateInfoDisplay();
             showMsg('🔭 Déplacez-vous librement autour de la statue');
-            setTimeout(() => { msgEl.style.display = 'none'; }, 4000);
+            setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
 
             if (hitTestSource) { hitTestSource.cancel(); hitTestSource = null; }
         });
@@ -429,7 +412,7 @@
             selectionScreen.style.display = 'flex';
             arCanvas.style.display        = 'none';
             msgEl.style.display           = 'none';
-            btnBack.style.display         = 'none';
+            btnBack.style.display         = 'block';
             btnPlace.style.display        = 'none';
             reticleHint.style.display     = 'none';
             carouselBar.style.display     = 'none';
@@ -441,7 +424,6 @@
 
         document.getElementById('pick-scan').addEventListener('click', startWebXR);
 
-        // Vérification support au chargement
         if (!navigator.xr) notSupported.style.display = 'block';
         else navigator.xr.isSessionSupported('immersive-ar')
             .then(ok => { if (!ok) notSupported.style.display = 'block'; });
