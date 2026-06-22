@@ -4,19 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Patrimoine AR — Le Pâtre</title>
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-        }
-    }
-    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, sans-serif; }
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, sans-serif; background: #000; }
 
-        /* ── Écran d'accueil ── */
         #selection-screen {
             position: fixed; inset: 0; background: #0a0a0a;
             display: flex; flex-direction: column;
@@ -25,6 +16,7 @@
         }
         #selection-screen h1 { color: white; font-size: 22px; font-weight: 600; text-align: center; }
         #selection-screen p  { color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; margin-top: -16px; }
+
         .mode-card {
             width: 100%; max-width: 360px;
             background: rgba(79,142,247,0.2);
@@ -37,8 +29,16 @@
         .mode-card h2 { color: white; font-size: 17px; font-weight: 600; margin: 0 0 4px; }
         .mode-card span { color: rgba(255,255,255,0.55); font-size: 13px; }
 
-        /* ── Vue AR ── */
-        #ar-container { position: fixed; inset: 0; display: none; }
+        #webxr-not-supported {
+            display: none;
+            background: rgba(255,59,48,0.15);
+            border: 1px solid rgba(255,59,48,0.4);
+            border-radius: 12px; padding: 16px 20px;
+            color: rgba(255,255,255,0.8); font-size: 13px;
+            text-align: center; width: 100%; max-width: 360px;
+        }
+
+        #ar-canvas { position: fixed; inset: 0; display: none; }
 
         #msg {
             position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
@@ -56,7 +56,29 @@
             display: none; -webkit-tap-highlight-color: transparent;
         }
 
-        /* ── Barre carousel ── */
+        /* Réticule de placement */
+        #reticle-hint {
+            position: fixed; bottom: 140px; left: 50%; transform: translateX(-50%);
+            background: rgba(255,255,255,0.15); color: white;
+            padding: 10px 20px; border-radius: 20px; font-size: 13px;
+            z-index: 99999; display: none; text-align: center;
+            border: 1px solid rgba(255,255,255,0.3);
+            animation: pulse-hint 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-hint { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        /* Bouton placer */
+        #btn-place {
+            position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+            background: rgba(52,199,89,0.9); color: white;
+            border: none; padding: 16px 40px;
+            border-radius: 30px; font-size: 16px; font-weight: 700;
+            cursor: pointer; z-index: 99999; display: none;
+            box-shadow: 0 4px 20px rgba(52,199,89,0.4);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Carousel */
         #carousel-navigation-bar {
             position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
             display: none; align-items: center; justify-content: space-between;
@@ -65,7 +87,6 @@
             border: 1px solid rgba(255,255,255,0.15);
             border-radius: 30px; padding: 4px;
             backdrop-filter: blur(10px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
         }
         .nav-arrow {
             width: 40px; height: 40px; border: none;
@@ -74,7 +95,7 @@
             display: flex; align-items: center; justify-content: center;
             border-radius: 50%; -webkit-tap-highlight-color: transparent;
         }
-        .nav-arrow:active { background: rgba(255,255,255,0.15); color: #ffc832; }
+        .nav-arrow:active { color: #ffc832; }
         #carousel-title {
             color: white; font-weight: 600; font-size: 14px;
             flex: 1; text-align: center;
@@ -82,7 +103,7 @@
             text-overflow: ellipsis; padding: 0 8px;
         }
 
-        /* ── Fiche annotation ── */
+        /* Fiche */
         #annotation-card {
             position: fixed; bottom: 100px; left: 50%;
             transform: translateX(-50%);
@@ -92,49 +113,32 @@
             width: 90%; max-width: 350px;
             z-index: 100000; display: none;
             backdrop-filter: blur(12px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.6);
             animation: slide-up 0.25s ease;
         }
         @keyframes slide-up {
-            from { transform: translateX(-50%) translateY(15px); opacity: 0; }
-            to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+            from { transform: translateX(-50%) translateY(15px); opacity:0; }
+            to   { transform: translateX(-50%) translateY(0);    opacity:1; }
         }
-        #annotation-card .ac-header {
+        .ac-header {
             display: flex; align-items: center;
             justify-content: space-between; margin-bottom: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;
         }
-        #annotation-card .ac-title { color: #fff; font-size: 16px; font-weight: 700; }
-        #annotation-card .ac-close {
-            color: rgba(255,255,255,0.4); font-size: 18px;
-            cursor: pointer; padding: 2px 6px;
-        }
-        #annotation-card .ac-body {
-            color: rgba(255,255,255,0.85);
-            font-size: 13.5px; line-height: 1.6;
-        }
-        #annotation-card .ac-body strong { color: #ffc832; font-weight: 500; }
-        #annotation-card .ac-tag {
+        .ac-title { color: #fff; font-size: 16px; font-weight: 700; }
+        .ac-close  { color: rgba(255,255,255,0.4); font-size: 18px; cursor: pointer; padding: 2px 6px; }
+        .ac-body   { color: rgba(255,255,255,0.85); font-size: 13.5px; line-height: 1.6; }
+        .ac-body strong { color: #ffc832; font-weight: 500; }
+        .ac-tag {
             display: inline-block; margin-top: 12px;
-            background: rgba(255,200,50,0.12);
-            color: #ffc832; border: 1px solid rgba(255,200,50,0.25);
+            background: rgba(255,200,50,0.12); color: #ffc832;
+            border: 1px solid rgba(255,200,50,0.25);
             border-radius: 4px; padding: 2px 8px; font-size: 11px;
             font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;
-        }
-
-        /* ── Indicateur stabilité ── */
-        #stable-hint {
-            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
-            background: rgba(52,199,89,0.85); color: white;
-            padding: 8px 18px; border-radius: 20px; font-size: 13px;
-            z-index: 99999; display: none; pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-    <!-- Écran d'accueil simplifié : 1 seul bouton -->
     <div id="selection-screen">
         <h1>🏛️ Patrimoine AR</h1>
         <p>Musée en plein air du Sart-Tilman</p>
@@ -142,39 +146,40 @@
             <span class="icon">📷</span>
             <div>
                 <h2>Lancer la visite AR</h2>
-                <span>Pointez votre caméra vers l'image cible</span>
+                <span>Pointez vers le sol pour poser la statue</span>
             </div>
+        </div>
+        <div id="webxr-not-supported">
+            ⚠️ Votre navigateur ne supporte pas WebXR AR.<br>
+            Utilisez <strong>Chrome Android</strong> ou <strong>Safari iOS 16+</strong>.
         </div>
     </div>
 
-    <!-- Vue AR -->
-    <div id="ar-container"></div>
+    <canvas id="ar-canvas"></canvas>
     <div id="msg">Initialisation...</div>
     <button id="btn-back">← Retour</button>
-    <div id="stable-hint">📍 Statue verrouillée — déplacez-vous autour</div>
+    <div id="reticle-hint">🎯 Pointez vers le sol — surface détectée</div>
+    <button id="btn-place">📍 Poser la statue ici</button>
 
-    <!-- Carousel -->
     <div id="carousel-navigation-bar">
         <button class="nav-arrow" id="nav-prev">◂</button>
         <span id="carousel-title">Le Pâtre</span>
         <button class="nav-arrow" id="nav-next">▸</button>
     </div>
 
-    <!-- Fiche -->
     <div id="annotation-card">
         <div class="ac-header">
-            <span class="ac-title" id="ac-title">Titre</span>
+            <span class="ac-title" id="ac-title"></span>
             <span class="ac-close" id="ac-close">✕</span>
         </div>
-        <div class="ac-body" id="ac-body">Texte</div>
-        <span class="ac-tag" id="ac-tag">Tag</span>
+        <div class="ac-body" id="ac-body"></div>
+        <span class="ac-tag" id="ac-tag"></span>
     </div>
 
     <script type="module">
-        import * as THREE from 'three';
-        import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+        import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+        import { GLTFLoader }  from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js';
 
         // ── Contenu ────────────────────────────────────────────────
         const DATA_INFOS = [
@@ -187,57 +192,45 @@
             {
                 btnLabel: '2. Origine du projet',
                 title: 'Le projet colonial (1/2)',
-                body: 'Au milieu des années 1950, l\'État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa). Mais une fois sur place, le sculpteur bouleverse le projet : il choisit de créer de monumentales <strong>statues en ronde-bosse</strong>.',
+                body: 'Au milieu des années 1950, l\'État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa). Mais une fois sur place, il choisit de créer de monumentales <strong>statues en ronde-bosse</strong>.',
                 tag: 'Histoire · Contexte'
             },
             {
                 btnLabel: '3. Un symbole fort',
                 title: 'La dignité célébrée (2/2)',
-                body: 'Ianchelevici sculpte trois piliers de l\'économie traditionnelle : <strong>le pâtre, le pêcheur et le chasseur</strong>. Loin des clichés coloniaux, il magnifie l\'homme africain dans une <strong>dignité enfin reconnue</strong>. Ces trois œuvres sont toujours fièrement en place à Kinshasa.',
+                body: 'Ianchelevici sculpte <strong>le pâtre, le pêcheur et le chasseur</strong> — trois piliers de l\'économie traditionnelle. Loin des clichés coloniaux, il magnifie l\'homme africain dans une <strong>dignité enfin reconnue</strong>.',
                 tag: 'Histoire · Symbole'
             },
             {
                 btnLabel: '4. L\'Artiste',
                 title: 'Idel Ianchelevici (1909–1994)',
-                body: 'Arrivé à Liège en 1928, il décroche le 1er prix de statuaire des Beaux-Arts en 1933. Sa carrière est jalonnée de chefs-d\'œuvre monumentaux : <strong>Le Plongeur</strong> (Liège, 1939), <strong>Le Résistant</strong> (Fort de Breendonk, 1947).',
+                body: 'Arrivé à Liège en 1928, 1er prix de statuaire des Beaux-Arts en 1933. Œuvres majeures : <strong>Le Plongeur</strong> (Liège, 1939), <strong>Le Résistant</strong> (Fort de Breendonk, 1947).',
                 tag: 'Biographie · Maître'
             },
             {
                 btnLabel: '5. Prix Triennal',
                 title: 'Mise à l\'honneur',
-                body: 'Depuis 1997, le Musée en plein air perpétue la mémoire du sculpteur en organisant le prestigieux <strong>Prix Triennal Ianchelevici</strong>, créé à l\'initiative de l\'ASBL « Les Amis de Ianchelevici ».',
+                body: 'Depuis 1997, le Musée en plein air organise le <strong>Prix Triennal Ianchelevici</strong>, créé à l\'initiative de l\'ASBL « Les Amis de Ianchelevici ».',
                 tag: 'Héritage · Distinction'
             }
         ];
 
         let currentIndex = 0;
 
-        // ── UI refs ────────────────────────────────────────────────
+        // ── UI ─────────────────────────────────────────────────────
         const selectionScreen = document.getElementById('selection-screen');
-        const arContainer     = document.getElementById('ar-container');
+        const arCanvas        = document.getElementById('ar-canvas');
         const msgEl           = document.getElementById('msg');
         const btnBack         = document.getElementById('btn-back');
-        const annotCard       = document.getElementById('annotation-card');
+        const reticleHint     = document.getElementById('reticle-hint');
+        const btnPlace        = document.getElementById('btn-place');
         const carouselBar     = document.getElementById('carousel-navigation-bar');
         const carouselTitle   = document.getElementById('carousel-title');
-        const stableHint      = document.getElementById('stable-hint');
-
-        let mindarTarget  = null;
-        let camera        = null;
-        let renderer      = null;
-        let anchor        = null;
-        let statueModel   = null;
-        let scene         = null;
-
-        // ── Pose figée ────────────────────────────────────────────
-        // Stocke la dernière position/quaternion connue de l'ancre
-        let frozenMatrix  = null;  // THREE.Matrix4 figée
-        let isFrozen      = false;
-        let frozenGroup   = null;  // groupe dans la scène (pas dans l'ancre)
+        const annotCard       = document.getElementById('annotation-card');
+        const notSupported    = document.getElementById('webxr-not-supported');
 
         const showMsg = t => { msgEl.textContent = t; };
 
-        // ── Carousel / fiche ──────────────────────────────────────
         function updateInfoDisplay() {
             const d = DATA_INFOS[currentIndex];
             carouselTitle.textContent = d.btnLabel;
@@ -261,90 +254,42 @@
         });
         carouselBar.addEventListener('click', e => { e.stopPropagation(); updateInfoDisplay(); });
 
-        // ── Figer la statue dans la scène ────────────────────────
-        // Principe : on lit la matrice monde de anchor.group,
-        // on crée un groupe "frozen" dans la scène avec cette même
-        // transform, et on y déplace le modèle.
-        // Ensuite MindAR ne contrôle plus la position du modèle.
-        function freezeStatue() {
-            if (isFrozen || !statueModel) return;
+        // ── Three.js + WebXR ───────────────────────────────────────
+        let renderer, scene, camera;
+        let reticleMesh, statueModel;
+        let hitTestSource     = null;
+        let hitTestRequested  = false;
+        let statueAnchored    = false;
+        let xrSession         = null;
 
-            // Lire la position/rotation monde actuelle de l'ancre
-            anchor.group.updateWorldMatrix(true, false);
-            frozenMatrix = anchor.group.matrixWorld.clone();
-
-            // Créer un groupe figé dans la scène
-            frozenGroup = new THREE.Group();
-            frozenGroup.applyMatrix4(frozenMatrix);
-            scene.add(frozenGroup);
-
-            // Déplacer le modèle de l'ancre vers le groupe figé
-            anchor.group.remove(statueModel);
-
-            // Réinitialiser la transform locale du modèle
-            // (elle est déjà intégrée dans frozenMatrix)
-            statueModel.position.set(0, 0, 0);
-            frozenGroup.add(statueModel);
-
-            isFrozen = true;
-
-            // Feedback visuel
-            stableHint.style.display = 'block';
-            setTimeout(() => { stableHint.style.display = 'none'; }, 3000);
-            showMsg('🔭 Déplacez-vous librement autour de la statue');
-        }
-
-        function unfreezeStatue() {
-            if (!isFrozen || !statueModel) return;
-            frozenGroup.remove(statueModel);
-            scene.remove(frozenGroup);
-            anchor.group.add(statueModel);
-            isFrozen = false;
-            frozenGroup = null;
-        }
-
-        // ── Init AR ───────────────────────────────────────────────
-        function initAR() {
-            mindarTarget = new MindARThree({
-                container: arContainer,
-                imageTargetSrc: './targets.mind',
-                uiScanning: 'no',
-            });
-
-            renderer = mindarTarget.renderer;
-            camera   = mindarTarget.camera;
-            scene    = mindarTarget.scene;
-
+        function initThree() {
+            renderer = new THREE.WebGLRenderer({ canvas: arCanvas, antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+            scene  = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
+
             scene.add(new THREE.AmbientLight(0xffffff, 1.5));
             const dir1 = new THREE.DirectionalLight(0xffffff, 1.0);
             dir1.position.set(2, 4, 5); scene.add(dir1);
             const dir2 = new THREE.DirectionalLight(0xffffff, 0.5);
             dir2.position.set(-2, -2, -3); scene.add(dir2);
 
-            anchor = mindarTarget.addAnchor(0);
+            // Réticule (anneau au sol qui suit le hit-test)
+            const ring = new THREE.RingGeometry(0.08, 0.12, 32);
+            ring.rotateX(-Math.PI / 2);
+            reticleMesh = new THREE.Mesh(
+                ring,
+                new THREE.MeshBasicMaterial({ color: 0x4f8ef7, side: THREE.DoubleSide })
+            );
+            reticleMesh.visible = false;
+            scene.add(reticleMesh);
+        }
 
-            // ── Cible trouvée ─────────────────────────────────────
-            anchor.onTargetFound = () => {
-                showMsg('✅ Cible détectée — restez immobile 1 sec…');
-
-                // Attendre 1 seconde que le tracking se stabilise,
-                // puis figer la statue dans la scène
-                setTimeout(() => {
-                    freezeStatue();
-                    carouselBar.style.display = 'flex';
-                    updateInfoDisplay();
-                }, 1000);
-            };
-
-            // ── Cible perdue — le modèle reste figé ──────────────
-            anchor.onTargetLost = () => {
-                // On ne fait RIEN : la statue reste à sa place figée
-                // L'utilisateur peut continuer à tourner autour
-                if (!isFrozen) showMsg('🔍 Cherche la cible...');
-            };
-
-            // ── Chargement GLB ────────────────────────────────────
+        function loadStatue() {
             const draco = new DRACOLoader();
             draco.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
             const loader = new GLTFLoader();
@@ -356,77 +301,150 @@
                 const center = box.getCenter(new THREE.Vector3());
                 const size   = box.getSize(new THREE.Vector3());
                 model.position.sub(center);
+                // Reposer sur le sol (y = 0)
+                model.position.y += size.y / 2;
 
                 const wrapper = new THREE.Group();
                 wrapper.add(model);
 
-                const scaleFactor = 3.0 / Math.max(size.x, size.y, size.z);
+                // Scale réel : statue de 3.4m → taille monde en mètres
+                const scaleFactor = 3.4 / Math.max(size.x, size.y, size.z);
                 wrapper.scale.setScalar(scaleFactor);
 
+                // Corrections orientation Metashape
                 wrapper.rotation.x = -Math.PI / 2;
                 wrapper.rotation.y =  Math.PI;
                 wrapper.rotation.z =  Math.PI;
 
                 statueModel = wrapper;
-                anchor.group.add(statueModel);
-                showMsg('🔍 Visez l\'image cible');
+                statueModel.visible = false;
+                scene.add(statueModel);
 
-            }, undefined, () => showMsg('❌ Erreur chargement GLB'));
+                showMsg('🎯 Pointez vers le sol');
+                reticleHint.style.display = 'block';
 
-            // ── Tap : dégeler/regeler ─────────────────────────────
-            // Double-tap pour remettre la statue à la position courante
-            let lastTap = 0;
-            arContainer.addEventListener('click', (e) => {
-                // Simple tap : fermer la fiche
-                if (annotCard.style.display === 'block') {
-                    closeInfoCard(); return;
-                }
-
-                // Double-tap : recaler la statue sur la cible actuelle
-                const now = Date.now();
-                if (now - lastTap < 350) {
-                    if (isFrozen) unfreezeStatue();
-                    setTimeout(() => freezeStatue(), 800);
-                    showMsg('📐 Recalage en cours…');
-                }
-                lastTap = now;
-            });
-
-            renderer.setAnimationLoop(() => {
-                renderer.render(scene, camera);
-            });
+            }, undefined, () => showMsg('❌ Erreur GLB'));
         }
 
-        // ── Lancement ─────────────────────────────────────────────
-        async function launchAR() {
+        async function startWebXR() {
+            if (!navigator.xr) { notSupported.style.display = 'block'; return; }
+
+            const supported = await navigator.xr.isSessionSupported('immersive-ar');
+            if (!supported) { notSupported.style.display = 'block'; return; }
+
+            initThree();
+            loadStatue();
+
+            // Afficher UI AR
             selectionScreen.style.display = 'none';
-            arContainer.style.display     = 'block';
+            arCanvas.style.display        = 'block';
             msgEl.style.display           = 'block';
             btnBack.style.display         = 'block';
+            showMsg('📷 Démarrage AR...');
 
-            showMsg('📷 Démarrage caméra...');
-            initAR();
-            try {
-                await mindarTarget.start();
-                document.querySelectorAll('.mindar-ui-overlay')
-                    .forEach(el => el.style.display = 'none');
-                showMsg('🔍 Visez l\'image cible');
-            } catch {
-                showMsg('❌ Caméra bloquée — HTTPS requis');
-            }
+            // Demander session WebXR avec hit-test
+            xrSession = await navigator.xr.requestSession('immersive-ar', {
+                requiredFeatures: ['hit-test'],
+                optionalFeatures: ['dom-overlay'],
+                domOverlay: { root: document.body }
+            });
+
+            renderer.xr.setReferenceSpaceType('local');
+            await renderer.xr.setSession(xrSession);
+
+            xrSession.addEventListener('end', onSessionEnd);
+
+            // Boucle de rendu WebXR
+            renderer.setAnimationLoop(onXRFrame);
         }
 
-        btnBack.addEventListener('click', () => {
-            selectionScreen.style.display = 'flex';
-            arContainer.style.display     = 'none';
-            msgEl.style.display           = 'none';
-            btnBack.style.display         = 'none';
-            carouselBar.style.display     = 'none';
-            stableHint.style.display      = 'none';
-            closeInfoCard();
+        function onXRFrame(time, frame) {
+            if (!frame) return;
+
+            const refSpace = renderer.xr.getReferenceSpace();
+
+            // ── Hit-test : trouver le sol ──────────────────────────
+            if (!statueAnchored) {
+                if (!hitTestRequested) {
+                    hitTestRequested = true;
+                    frame.session.requestReferenceSpace('viewer').then(viewerSpace => {
+                        frame.session.requestHitTestSource({ space: viewerSpace })
+                            .then(src => { hitTestSource = src; });
+                    });
+                }
+
+                if (hitTestSource) {
+                    const hits = frame.getHitTestResults(hitTestSource);
+                    if (hits.length > 0) {
+                        const pose = hits[0].getPose(refSpace);
+                        reticleMesh.visible = true;
+                        reticleMesh.matrix.fromArray(pose.transform.matrix);
+                        reticleMesh.matrix.decompose(
+                            reticleMesh.position,
+                            reticleMesh.quaternion,
+                            reticleMesh.scale
+                        );
+                        btnPlace.style.display = 'block';
+                        showMsg('✅ Surface détectée');
+                    } else {
+                        reticleMesh.visible = false;
+                        btnPlace.style.display = 'none';
+                        showMsg('🎯 Pointez vers le sol');
+                    }
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // ── Bouton "Poser la statue" ───────────────────────────────
+        btnPlace.addEventListener('click', () => {
+            if (!reticleMesh.visible || !statueModel || statueAnchored) return;
+
+            // Placer la statue là où est le réticule
+            statueModel.position.copy(reticleMesh.position);
+            statueModel.quaternion.copy(reticleMesh.quaternion);
+            statueModel.visible = true;
+            statueAnchored = true;
+
+            // Cacher réticule + bouton, montrer carousel
+            reticleMesh.visible       = false;
+            btnPlace.style.display    = 'none';
+            reticleHint.style.display = 'none';
+            carouselBar.style.display = 'flex';
+            updateInfoDisplay();
+            showMsg('🔭 Déplacez-vous librement autour de la statue');
+            setTimeout(() => { msgEl.style.display = 'none'; }, 4000);
+
+            if (hitTestSource) { hitTestSource.cancel(); hitTestSource = null; }
         });
 
-        document.getElementById('pick-scan').addEventListener('click', launchAR);
+        function onSessionEnd() {
+            xrSession = null;
+            renderer.setAnimationLoop(null);
+        }
+
+        btnBack.addEventListener('click', async () => {
+            if (xrSession) await xrSession.end();
+            selectionScreen.style.display = 'flex';
+            arCanvas.style.display        = 'none';
+            msgEl.style.display           = 'none';
+            btnBack.style.display         = 'none';
+            btnPlace.style.display        = 'none';
+            reticleHint.style.display     = 'none';
+            carouselBar.style.display     = 'none';
+            closeInfoCard();
+            statueAnchored   = false;
+            hitTestRequested = false;
+            hitTestSource    = null;
+        });
+
+        document.getElementById('pick-scan').addEventListener('click', startWebXR);
+
+        // Vérification support au chargement
+        if (!navigator.xr) notSupported.style.display = 'block';
+        else navigator.xr.isSessionSupported('immersive-ar')
+            .then(ok => { if (!ok) notSupported.style.display = 'block'; });
     </script>
 </body>
 </html>
