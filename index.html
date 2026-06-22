@@ -174,12 +174,12 @@
                 const maxDim = Math.max(size.x, size.y, size.z);
                 wrapper.scale.setScalar(0.8 / maxDim);
 
-                // ── CORRECTION RADICALE DE L'ORIENTATION ──
-                wrapper.rotation.x = Math.PI / 2;  // Redressement initial
-                wrapper.rotation.y = Math.PI;       // Assure qu'elle fait face à la caméra
-                wrapper.rotation.z = Math.PI;       // Pivot à 180° : Remet enfin la tête vers le haut !
+                // ── RECALIBRAGE DES ROTATIONS ──
+                wrapper.rotation.x = -Math.PI / 2; // Redresse l'axe vertical Metashape vers le haut
+                wrapper.rotation.y = 0;             // Garde la position de face obtenue
+                wrapper.rotation.z = 0;             // Évite les conflits de pivot secondaires
 
-                // Lever la statue pour qu'elle repose sur la base réelle calculée
+                // Placer la base sur la grille
                 wrapper.position.y = size.y * (0.8 / maxDim) * 0.5;
 
                 statueModel = wrapper;
