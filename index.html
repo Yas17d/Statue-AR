@@ -120,8 +120,8 @@
         const btnTouch        = document.getElementById('btn-touch');
         const tapHint         = document.getElementById('tap-hint');
 
-        let currentMode  = null;
-        let statueModel  = null;
+        let currentMode   = null;
+        let statueModel   = null;
         let mindarTarget = null;
         let camera       = null;
         let anchor       = null;
@@ -176,16 +176,12 @@
                 wrapper.add(model);
 
                 // ── Scale : 1 unité = largeur de l'image cible ───────
-                // MindAR : l'ancre fait 1 unité de large par défaut
-                // On veut que la statue fasse ~0.8× la largeur de la cible
                 const maxDim = Math.max(size.x, size.y, size.z);
                 wrapper.scale.setScalar(0.8 / maxDim);
 
-                // ── Correction orientation Metashape ─────────────────
-                // Metashape exporte souvent avec Z=haut → corriger pour Three.js (Y=haut)
-                // Ajustez ces valeurs si la statue est encore penchée
-                wrapper.rotation.x = -Math.PI / 2; // -90° sur X pour redresser
-                // wrapper.rotation.y = Math.PI;    // 180° si elle est dos à vous
+                // ── Correction de l'orientation (Tête en haut + Face à nous) ──
+                wrapper.rotation.x = Math.PI / 2; // Redresse la tête vers le haut (+90° sur X)
+                wrapper.rotation.y = Math.PI;     // Fait pivoter la statue de 180° sur Y pour la mettre de face
 
                 // Lever légèrement la statue au-dessus du plan de la cible
                 wrapper.position.y = size.y * (0.8 / maxDim) * 0.5;
@@ -207,9 +203,6 @@
                 console.error(err);
             });
 
-            // ── Tap écran : placement en mode tactile ────────────────
-            // On place le manualGroup à une distance fixe devant la caméra
-            // en utilisant la matrice monde de la caméra (fiable avec MindAR)
             arContainer.addEventListener('click', onTap);
 
             renderer.setAnimationLoop(() => renderer.render(scene, camera));
@@ -218,17 +211,14 @@
         function onTap(e) {
             if (currentMode !== 'touch' || !statueModel) return;
 
-            // Vecteur "devant la caméra" dans l'espace monde
             const camDir = new THREE.Vector3(0, 0, -1);
             camDir.applyQuaternion(camera.quaternion);
 
-            // Distance de placement (en unités Three.js / mètres approx)
             const distance = 2;
             const pos = camera.position.clone().addScaledVector(camDir, distance);
 
             manualGroup.position.copy(pos);
 
-            // Orienter la statue pour qu'elle fasse face à la caméra (axe Y seul)
             const lookTarget = new THREE.Vector3(
                 camera.position.x,
                 manualGroup.position.y,
