@@ -78,7 +78,6 @@
         }
         @keyframes pulse-hint { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 
-        /* ── NOUVEAU : Barre de navigation style Sketchfab/Exemple ── */
         #carousel-navigation-bar {
             position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
             display: none; align-items: center; justify-content: space-between;
@@ -105,7 +104,6 @@
             overflow: hidden; text-overflow: ellipsis; padding: 0 8px;
         }
 
-        /* ── Fiche annotation (Design Sombre + Touche Or) ── */
         #annotation-card {
             position: fixed; bottom: 100px; left: 50%;
             transform: translateX(-50%);
@@ -196,8 +194,6 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-        // ── Données réelles de la statue avec touches de couleur or (balises strong) ──
-        // ── Données réelles de la statue reformulées et intégrées ──
         const DATA_INFOS = [
             {
                 btnLabel: '1. Le Pâtre',
@@ -208,7 +204,7 @@
             {
                 btnLabel: '2. Origine du projet',
                 title: 'Le projet colonial (1/2)',
-                body: 'Au milieu des années 1950, l’État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa) dédié à l\'explorateur Stanley. Mais une fois sur place, le sculpteur bouleverse le projet : il choisit de créer de monumentales <strong>statues en ronde-bosse</strong>.',
+                body: 'Au milieu des années 1950, l’État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa) dédié à l\'explorateur Stanley. Mais une fois sur place, le sculpteur moderne modifie le projet : il choisit de créer de monumentales <strong>statues en ronde-bosse</strong>.',
                 tag: 'Histoire · Contexte'
             },
             {
@@ -253,10 +249,10 @@
         let anchor       = null;
         let manualGroup  = null;
         let arStarted    = false;
+        let statueAnchored = false; // <-- Ajouté ici pour éviter les bugs de scope !
 
         const showMsg = t => { msgEl.textContent = t; };
 
-        // Mettre à jour l'affichage de la bulle d'info et de la barre
         function updateInfoDisplay() {
             const data = DATA_INFOS[currentIndex];
             carouselTitle.textContent = data.btnLabel;
@@ -272,7 +268,6 @@
 
         document.getElementById('ac-close').addEventListener('click', closeInfoCard);
 
-        // Gestion de la navigation gauche / droite
         document.getElementById('nav-prev').addEventListener('click', (e) => {
             e.stopPropagation();
             currentIndex = (currentIndex - 1 + DATA_INFOS.length) % DATA_INFOS.length;
@@ -285,7 +280,6 @@
             updateInfoDisplay();
         });
 
-        // Clic sur le texte central de la barre rouvre la bulle si fermée
         carouselBar.addEventListener('click', (e) => {
             e.stopPropagation();
             updateInfoDisplay();
@@ -344,11 +338,12 @@
                 const wrapper = new THREE.Group();
                 wrapper.add(model);
 
-                const targetWidthMeters = 3.0;
+                const targetWidthMeters = 0.2;
                 const statueRealHeight  = 3.5;
                 const scaleFactor = (statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters;
                 wrapper.scale.setScalar(scaleFactor);
 
+                // Pivot pour le mode cible
                 wrapper.rotation.x = -Math.PI / 2;
                 wrapper.rotation.y =  Math.PI;
                 wrapper.rotation.z =  Math.PI;
@@ -366,24 +361,26 @@
 
             }, undefined, () => showMsg('❌ Erreur GLB'));
 
+            // Système de clic tactile corrigé et ancré
             arContainer.addEventListener('click', (e) => {
                 if (annotCard.style.display === 'block') {
                     closeInfoCard(); return;
                 }
                 if (currentMode !== 'touch' || !statueModel) return;
 
-                const camDir = new THREE.Vector3(0, 0, -1);
-                camDir.applyQuaternion(camera.quaternion);
-                const pos = camera.position.clone().addScaledVector(camDir, 2);
-                manualGroup.position.copy(pos);
-                const lookTarget = new THREE.Vector3(camera.position.x, manualGroup.position.y, camera.position.z);
-                manualGroup.lookAt(lookTarget);
+                if (!statueAnchored) {
+                    // Positionnement stable face caméra
+                    manualGroup.position.set(0, -1.5, -4);
+                    // Force l'objet à faire face à l'utilisateur (caméra fixée à 0, -1.5, 0)
+                    manualGroup.lookAt(new THREE.Vector3(0, -1.5, 0));
+                    statueAnchored = true;
+                }
 
                 statueModel.visible = true;
                 tapHint.style.display = 'none';
                 carouselBar.style.display = 'flex';
                 updateInfoDisplay();
-                showMsg('');
+                showMsg('🔭 Déplacez-vous pour observer la statue');
             });
 
             renderer.setAnimationLoop(() => {
@@ -427,11 +424,13 @@
                 anchor.group.add(statueModel);
                 statueModel.visible = true;
                 tapHint.style.display = 'none';
+                statueAnchored = false; 
                 showMsg('🔍 Visez votre image cible');
             } else {
                 anchor.group.remove(statueModel);
                 manualGroup.add(statueModel);
                 statueModel.visible = false;
+                statueAnchored = false;
                 tapHint.style.display = 'block';
                 showMsg('');
             }
