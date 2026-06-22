@@ -3,67 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Patrimoine AR - Hybride</title>
+    <title>Patrimoine AR</title>
     <script type="importmap">
     {
         "imports": {
             "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-            "three/addons/renderers/CSS3DRenderer.js": "https://unpkg.com/three@0.160.0/examples/jsm/renderers/CSS3DRenderer.js"
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
         }
     }
     </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
-            width: 100%; height: 100%;
-            overflow: hidden;
-            position: relative;
-            font-family: sans-serif;
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, sans-serif; }
+
+        /* ── Écran de sélection ── */
+        #selection-screen {
+            position: fixed; inset: 0;
+            background: #0a0a0a;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 24px; z-index: 100000;
+            padding: 2rem;
         }
-        #ar-container {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            overflow: hidden;
+        #selection-screen h1 {
+            color: white; font-size: 22px; font-weight: 600;
+            text-align: center;
         }
-        #msg {
-            position: fixed; top: 10px; left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            color: white; padding: 10px 20px;
-            border-radius: 20px; font-size: 14px; 
-            z-index: 99999; /* Forcé au premier plan maximum */
-            pointer-events: none; text-align: center;
-            width: 90%; max-width: 400px;
+        #selection-screen p {
+            color: rgba(255,255,255,0.5); font-size: 14px;
+            text-align: center; margin-top: -16px;
         }
-        #controls {
-            position: fixed; bottom: 30px; left: 50%;
-            transform: translateX(-50%);
-            display: flex; gap: 15px; 
-            z-index: 99999; /* Forcé au premier plan maximum */
-            width: 90%; max-width: 400px;
-            justify-content: center;
-        }
-        .btn {
-            flex: 1; /* Donne la même taille aux deux boutons */
-            background: #ff3b30; color: white;
-            border: none; padding: 14px 10px;
-            border-radius: 12px; font-weight: bold;
-            font-size: 14px;
-            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        .mode-card {
+            width: 100%; max-width: 360px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 16px; padding: 20px 24px;
+            display: flex; align-items: center; gap: 16px;
+            cursor: pointer; transition: background 0.2s, border-color 0.2s;
             -webkit-tap-highlight-color: transparent;
         }
-        .btn.active { background: #34c759; }
+        .mode-card:active { background: rgba(255,255,255,0.14); }
+        .mode-card .icon { font-size: 32px; flex-shrink: 0; }
+        .mode-card h2 { color: white; font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+        .mode-card span { color: rgba(255,255,255,0.5); font-size: 13px; }
+        .mode-card.highlight {
+            background: rgba(79, 142, 247, 0.2);
+            border-color: rgba(79, 142, 247, 0.6);
+        }
+
+        /* ── Vue AR ── */
+        #ar-container {
+            position: fixed; inset: 0;
+            display: none;
+        }
+        #msg {
+            position: fixed; top: 16px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.75);
+            color: white; padding: 10px 20px;
+            border-radius: 20px; font-size: 14px;
+            z-index: 99999; pointer-events: none;
+            text-align: center; max-width: 90%;
+            backdrop-filter: blur(8px);
+        }
+        #controls {
+            position: fixed; bottom: 32px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 12px;
+            z-index: 99999;
+        }
+        .btn {
+            background: rgba(0,0,0,0.6);
+            color: rgba(255,255,255,0.7);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 12px 20px; border-radius: 12px;
+            font-weight: 600; font-size: 14px;
+            cursor: pointer; backdrop-filter: blur(8px);
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.2s;
+        }
+        .btn.active {
+            background: rgba(52, 199, 89, 0.85);
+            border-color: transparent; color: white;
+        }
+        #btn-back {
+            position: fixed; top: 16px; left: 16px;
+            background: rgba(0,0,0,0.6);
+            color: white; border: 1px solid rgba(255,255,255,0.2);
+            padding: 10px 16px; border-radius: 10px;
+            font-size: 14px; cursor: pointer;
+            z-index: 99999; backdrop-filter: blur(8px);
+            -webkit-tap-highlight-color: transparent;
+        }
     </style>
 </head>
 <body>
-    <div id="ar-container"></div>
-    <div id="msg">Initialisation...</div>
 
-    <div id="controls">
-        <button id="btn-scan" class="btn active">1. Mode Scan</button>
-        <button id="btn-touch" class="btn">2. Mode Tactile</button>
+    <!-- ① Écran de sélection du mode -->
+    <div id="selection-screen">
+        <h1>🏛️ Patrimoine AR</h1>
+        <p>Choisissez votre mode de visualisation</p>
+
+        <div class="mode-card" id="pick-scan">
+            <span class="icon">📷</span>
+            <div>
+                <h2>Mode Scan</h2>
+                <span>Détecte automatiquement l'image cible</span>
+            </div>
+        </div>
+
+        <div class="mode-card highlight" id="pick-touch">
+            <span class="icon">👆</span>
+            <div>
+                <h2>Mode Tactile</h2>
+                <span>Tapez l'écran pour poser la statue</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ② Vue AR (cachée jusqu'au choix) -->
+    <div id="ar-container"></div>
+    <div id="msg" style="display:none">Initialisation...</div>
+    <button id="btn-back" style="display:none">← Retour</button>
+    <div id="controls" style="display:none">
+        <button id="btn-scan" class="btn">📷 Scan</button>
+        <button id="btn-touch" class="btn">👆 Tactile</button>
     </div>
 
     <script type="module">
@@ -72,31 +136,165 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-        const msg = document.getElementById('msg');
-        const btnScan = document.getElementById('btn-scan');
-        const btnTouch = document.getElementById('btn-touch');
-        const container = document.querySelector('#ar-container');
+        // ── Éléments UI ────────────────────────────────────────────
+        const selectionScreen = document.getElementById('selection-screen');
+        const arContainer      = document.getElementById('ar-container');
+        const msgEl            = document.getElementById('msg');
+        const btnBack          = document.getElementById('btn-back');
+        const controls         = document.getElementById('controls');
+        const btnScan          = document.getElementById('btn-scan');
+        const btnTouch         = document.getElementById('btn-touch');
 
-        let currentMode = 'scan'; // 'scan' ou 'touch'
-        let statueModel = null;
+        let currentMode  = null;
+        let statueModel  = null;
+        let mindarTarget = null;
+        let anchor       = null;
+        let manualGroup  = null;
+        let arStarted    = false;
 
-        // ── 1. Initialisation de MindAR ───────────────────────────────────────
-        const mindarTarget = new MindARThree({
-            container: container,
-            imageTargetSrc: './targets.mind',
-            uiScanning: "no", // Modifié : On coupe le loader natif en boucle
+        function showMsg(text) { msgEl.textContent = text; }
+
+        // ── Initialisation de MindAR (une seule fois) ───────────────
+        function initAR() {
+            mindarTarget = new MindARThree({
+                container: arContainer,
+                imageTargetSrc: './targets.mind',
+                uiScanning: 'no',
+            });
+
+            const { renderer, scene, camera } = mindarTarget;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+            const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+            dir.position.set(2, 4, 5);
+            scene.add(dir);
+
+            anchor      = mindarTarget.addAnchor(0);
+            manualGroup = new THREE.Group();
+            scene.add(manualGroup);
+
+            anchor.onTargetFound = () => {
+                if (currentMode === 'scan') showMsg('✅ Cible trouvée !');
+            };
+            anchor.onTargetLost = () => {
+                if (currentMode === 'scan') showMsg('🔍 Cherche la cible...');
+            };
+
+            // Chargement GLB
+            const draco = new DRACOLoader();
+            draco.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
+            const loader = new GLTFLoader();
+            loader.setDRACOLoader(draco);
+
+            loader.load('./Statue25.glb', (gltf) => {
+                const model = gltf.scene;
+                const box    = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size   = box.getSize(new THREE.Vector3());
+                model.position.set(-center.x, -center.y, -center.z);
+
+                const wrapper = new THREE.Group();
+                wrapper.add(model);
+                wrapper.scale.setScalar(1.0 / Math.max(size.x, size.y, size.z));
+                statueModel = wrapper;
+
+                // Attacher selon le mode déjà choisi
+                if (currentMode === 'scan') {
+                    anchor.group.add(statueModel);
+                    showMsg('🔍 Visez votre image cible');
+                } else {
+                    manualGroup.add(statueModel);
+                    statueModel.visible = false;
+                    showMsg('👆 Tapez l\'écran pour poser la statue');
+                }
+            }, undefined, () => showMsg('❌ Erreur GLB'));
+
+            // Tap pour mode tactile
+            arContainer.addEventListener('click', (e) => {
+                if (currentMode !== 'touch' || !statueModel) return;
+                statueModel.visible = true;
+                const dist = 1.5;
+                const dir  = new THREE.Vector3();
+                camera.getWorldDirection(dir);
+                statueModel.position.copy(camera.position).addScaledVector(dir, dist);
+                statueModel.lookAt(camera.position.x, statueModel.position.y, camera.position.z);
+                showMsg('📍 Statue positionnée !');
+            });
+
+            renderer.setAnimationLoop(() => renderer.render(scene, camera));
+
+            return { camera };
+        }
+
+        // ── Lancer l'AR avec le mode choisi ─────────────────────────
+        async function launchAR(mode) {
+            // Cacher l'écran de sélection, montrer l'AR
+            selectionScreen.style.display = 'none';
+            arContainer.style.display     = 'block';
+            msgEl.style.display           = 'block';
+            btnBack.style.display         = 'block';
+            controls.style.display        = 'flex';
+
+            currentMode = mode;
+            updateModeButtons();
+
+            if (!arStarted) {
+                showMsg('Démarrage de la caméra...');
+                initAR();
+                try {
+                    await mindarTarget.start();
+                    document.querySelectorAll('.mindar-ui-overlay')
+                        .forEach(el => el.style.display = 'none');
+                    arStarted = true;
+                    if (mode === 'scan') showMsg('🔍 Visez votre image cible');
+                    else showMsg('👆 Tapez l\'écran pour poser la statue');
+                } catch {
+                    showMsg('❌ Caméra bloquée. HTTPS requis.');
+                }
+            }
+        }
+
+        // ── Switcher de mode dans la barre du bas ───────────────────
+        function setMode(mode) {
+            if (!statueModel) return;
+            currentMode = mode;
+            updateModeButtons();
+
+            if (mode === 'scan') {
+                manualGroup.remove(statueModel);
+                anchor.group.add(statueModel);
+                statueModel.position.set(0, 0, 0);
+                statueModel.visible = true;
+                showMsg('🔍 Visez votre image cible');
+            } else {
+                anchor.group.remove(statueModel);
+                manualGroup.add(statueModel);
+                statueModel.visible = false;
+                showMsg('👆 Tapez l\'écran pour poser la statue');
+            }
+        }
+
+        function updateModeButtons() {
+            btnScan.classList.toggle('active',  currentMode === 'scan');
+            btnTouch.classList.toggle('active', currentMode === 'touch');
+        }
+
+        // ── Retour à l'écran de sélection ───────────────────────────
+        btnBack.addEventListener('click', () => {
+            // On ne stoppe pas la caméra pour éviter un re-démarrage lent
+            selectionScreen.style.display = 'flex';
+            arContainer.style.display     = 'none';
+            msgEl.style.display           = 'none';
+            btnBack.style.display         = 'none';
+            controls.style.display        = 'none';
         });
 
-        const { renderer, scene, camera } = mindarTarget;
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-        // Éclairage indispensable pour ton modèle GLB
-        scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(2, 4, 5);
-        scene.add(dirLight);
-
-        // Ancre pour le mode scan automatique
-        const anchor = mindarTarget.addAnchor(0);
-
-        // Groupe factice pour le mode manuel (placé
+        // ── Événements boutons ───────────────────────────────────────
+        document.getElementById('pick-scan').addEventListener('click',  () => launchAR('scan'));
+        document.getElementById('pick-touch').addEventListener('click', () => launchAR('touch'));
+        btnScan.addEventListener('click',  () => setMode('scan'));
+        btnTouch.addEventListener('click', () => setMode('touch'));
+    </script>
+</body>
+</html>
