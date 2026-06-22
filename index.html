@@ -54,21 +54,23 @@
             font-size: 14px; cursor: pointer; z-index: 99999;
             display: none; -webkit-tap-highlight-color: transparent;
         }
+        
+        /* ── Barre des modes (haut de l'écran désormais pour libérer le bas) ── */
         #controls {
-            position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
             display: none; gap: 12px; z-index: 99999;
         }
         .btn {
             background: rgba(0,0,0,0.6); color: rgba(255,255,255,0.7);
             border: 1px solid rgba(255,255,255,0.2);
-            padding: 12px 20px; border-radius: 12px;
-            font-weight: 600; font-size: 14px; cursor: pointer;
+            padding: 8px 16px; border-radius: 20px;
+            font-weight: 600; font-size: 13px; cursor: pointer;
             -webkit-tap-highlight-color: transparent;
         }
-        .btn.active { background: rgba(52,199,89,0.85); border-color: transparent; color: white; }
+        .btn.active { background: rgba(79,142,247,0.85); border-color: transparent; color: white; }
 
         #tap-hint {
-            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
             background: rgba(255,255,255,0.15); color: white;
             padding: 10px 20px; border-radius: 20px; font-size: 13px;
             z-index: 99999; display: none; text-align: center;
@@ -77,49 +79,33 @@
         }
         @keyframes pulse-hint { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 
-        /* ── Points lumineux AR ── */
-        .ar-dot {
-            position: fixed;
-            width: 24px; height: 24px;
-            transform: translate(-50%, -50%);
-            cursor: pointer;
-            z-index: 9999;
-            display: none;
-            pointer-events: auto;
+        /* ── NOUVEAU : Barre d'infos avec boutons interactifs ── */
+        #info-buttons-bar {
+            position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+            display: none; gap: 12px; z-index: 99999; width: 90%; max-width: 360px;
+            justify-content: center;
         }
-        .ar-dot .ring {
-            position: absolute; inset: 0;
-            border-radius: 50%;
-            background: rgba(255, 200, 50, 0.9);
-            box-shadow: 0 0 12px 4px rgba(255, 200, 50, 0.6);
-            animation: pulse-dot 1.4s ease-in-out infinite;
+        .btn-info {
+            flex: 1; background: rgba(255, 200, 50, 0.2); color: #ffc832;
+            border: 1px solid rgba(255, 200, 50, 0.4);
+            padding: 14px; border-radius: 14px; font-weight: 600; font-size: 14px;
+            cursor: pointer; text-align: center; backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: background 0.2s; -webkit-tap-highlight-color: transparent;
         }
-        .ar-dot .ring-outer {
-            position: absolute;
-            inset: -6px;
-            border-radius: 50%;
-            border: 2px solid rgba(255, 200, 50, 0.4);
-            animation: pulse-outer 1.4s ease-in-out infinite;
-        }
-        @keyframes pulse-dot {
-            0%,100% { transform: scale(1); opacity: 1; }
-            50%      { transform: scale(1.2); opacity: 0.7; }
-        }
-        @keyframes pulse-outer {
-            0%,100% { transform: scale(1); opacity: 0.5; }
-            50%      { transform: scale(1.5); opacity: 0; }
-        }
+        .btn-info:active { background: rgba(255, 200, 50, 0.4); }
 
-        /* ── Fiche annotation ── */
+        /* ── Fiche annotation / Bulle d'infos ── */
         #annotation-card {
-            position: fixed; bottom: 110px; left: 50%;
+            position: fixed; bottom: 100px; left: 50%;
             transform: translateX(-50%);
-            background: rgba(10, 10, 20, 0.92);
-            border: 1px solid rgba(255,200,50,0.4);
-            border-radius: 16px; padding: 18px 20px;
+            background: rgba(10, 10, 20, 0.94);
+            border: 1px solid rgba(255,200,50,0.5);
+            border-radius: 16px; padding: 20px;
             width: 90%; max-width: 360px;
-            z-index: 99999; display: none;
+            z-index: 100000; display: none;
             backdrop-filter: blur(12px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             animation: slide-up 0.25s ease;
         }
         @keyframes slide-up {
@@ -128,27 +114,26 @@
         }
         #annotation-card .ac-header {
             display: flex; align-items: center;
-            justify-content: space-between; margin-bottom: 10px;
+            justify-content: space-between; margin-bottom: 12px;
         }
         #annotation-card .ac-title {
             color: rgba(255,200,50,1);
-            font-size: 15px; font-weight: 600;
+            font-size: 17px; font-weight: 600;
         }
         #annotation-card .ac-close {
-            color: rgba(255,255,255,0.5); font-size: 20px;
-            cursor: pointer; line-height: 1;
-            padding: 0 4px;
+            color: rgba(255,255,255,0.5); font-size: 22px;
+            cursor: pointer; line-height: 1; padding: 4px;
         }
         #annotation-card .ac-body {
-            color: rgba(255,255,255,0.85);
-            font-size: 13px; line-height: 1.6;
+            color: rgba(255,255,255,0.9);
+            font-size: 14px; line-height: 1.6;
         }
         #annotation-card .ac-tag {
-            display: inline-block; margin-top: 10px;
+            display: inline-block; margin-top: 12px;
             background: rgba(255,200,50,0.15);
             color: rgba(255,200,50,0.9);
             border: 1px solid rgba(255,200,50,0.3);
-            border-radius: 20px; padding: 3px 12px;
+            border-radius: 20px; padding: 4px 12px;
             font-size: 11px;
         }
     </style>
@@ -171,14 +156,18 @@
     <div id="ar-container"></div>
     <div id="msg">Initialisation...</div>
     <button id="btn-back">← Retour</button>
+    
     <div id="controls">
         <button id="btn-scan" class="btn">📷 Scan</button>
         <button id="btn-touch" class="btn">👆 Tactile</button>
     </div>
+    
     <div id="tap-hint">👆 Touchez l'écran pour poser la statue</div>
 
-    <div class="ar-dot" id="dot-0"><div class="ring-outer"></div><div class="ring"></div></div>
-    <div class="ar-dot" id="dot-1"><div class="ring-outer"></div><div class="ring"></div></div>
+    <div id="info-buttons-bar">
+        <button class="btn-info" id="btn-info-0">💡 La Tête</button>
+        <button class="btn-info" id="btn-info-1">🏛️ Le Socle</button>
+    </div>
     
     <div id="annotation-card">
         <div class="ac-header">
@@ -195,27 +184,18 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-        // ── Données des annotations ────────────────────────────────
-        // MODIFICATION : Ajout d'un xFactor pour gérer le décalage à droite de la statue (0.6 = à droite)
-        const ANNOTATIONS = [
+        // ── Textes des bulles d'infos ──────────────────────────────
+        const DATA_INFOS = [
             {
-                id: 0,
                 title: 'La tête',
                 body: 'Décrivez ici les détails de la tête de la statue : style, époque, matériau, symbolisme...',
-                tag: 'Sculpture · XIXe s.',
-                xFactor: 0.6,   // Décalé sur la droite
-                yFactor: 0.6,   // Position haute
-                zFactor: 0.0    
+                tag: 'Sculpture · XIXe s.'
             },
             {
-                id: 1,
                 title: 'Le socle',
                 body: 'Le socle : inscription, date, matériau, contexte historique de l\'érection...',
-                tag: 'Histoire · Épigraphie',
-                xFactor: 0.6,   // Également décalé sur la droite
-                yFactor: -0.8,  // Position basse
-                zFactor: 0.0
-            },
+                tag: 'Histoire · Épigraphie'
+            }
         ];
         
         // ── UI refs ────────────────────────────────────────────────
@@ -228,7 +208,7 @@
         const btnTouch        = document.getElementById('btn-touch');
         const tapHint         = document.getElementById('tap-hint');
         const annotCard       = document.getElementById('annotation-card');
-        const dots            = ANNOTATIONS.map(a => document.getElementById('dot-' + a.id));
+        const infoBar         = document.getElementById('info-buttons-bar');
 
         let currentMode   = null;
         let statueModel   = null;
@@ -238,63 +218,27 @@
         let anchor       = null;
         let manualGroup  = null;
         let arStarted    = false;
-        let statueVisible = false;
-
-        const worldPoints = ANNOTATIONS.map(() => new THREE.Vector3());
 
         const showMsg = t => { msgEl.textContent = t; };
 
-        // ── Projection 3D → écran ──────────────────────────────────
-        function projectToScreen(worldPos) {
-            const v = worldPos.clone().project(camera);
-            return {
-                x: (v.x * 0.5 + 0.5) * window.innerWidth,
-                y: (-v.y * 0.5 + 0.5) * window.innerHeight,
-                visible: v.z < 1
-            };
-        }
-
-        function updateDots() {
-            if (!statueModel || !statueVisible) {
-                dots.forEach(d => d.style.display = 'none');
-                return;
-            }
-
-            ANNOTATIONS.forEach((ann, i) => {
-                const localPos = ann.offset.clone();
-                statueModel.localToWorld(localPos);
-                worldPoints[i].copy(localPos);
-
-                const screen = projectToScreen(worldPoints[i]);
-                const dot = dots[i];
-
-                if (screen.visible &&
-                    screen.x > 0 && screen.x < window.innerWidth &&
-                    screen.y > 0 && screen.y < window.innerHeight) {
-                    dot.style.display = 'block';
-                    dot.style.left = screen.x + 'px';
-                    dot.style.top  = screen.y + 'px';
-                } else {
-                    dot.style.display = 'none';
-                }
-            });
-        }
-
-        function showAnnotation(ann) {
-            document.getElementById('ac-title').textContent = ann.title;
-            document.getElementById('ac-body').textContent  = ann.body;
-            document.getElementById('ac-tag').textContent   = ann.tag;
+        // ── Gestion de l'affichage des Bulles d'Infos ──────────────
+        function showInfoCard(index) {
+            const data = DATA_INFOS[index];
+            document.getElementById('ac-title').textContent = data.title;
+            document.getElementById('ac-body').textContent  = data.body;
+            document.getElementById('ac-tag').textContent   = data.tag;
             annotCard.style.display = 'block';
         }
-        function closeAnnotation() { annotCard.style.display = 'none'; }
+        function closeInfoCard() { annotCard.style.display = 'none'; }
 
-        document.getElementById('ac-close').addEventListener('click', closeAnnotation);
+        document.getElementById('ac-close').addEventListener('click', closeInfoCard);
 
-        dots.forEach((dot, i) => {
-            dot.addEventListener('click', (e) => {
-                e.stopPropagation();
-                showAnnotation(ANNOTATIONS[i]);
-            });
+        // Actions au clic sur les nouveaux boutons d'infos
+        document.getElementById('btn-info-0').addEventListener('click', (e) => {
+            e.stopPropagation(); showInfoCard(0);
+        });
+        document.getElementById('btn-info-1').addEventListener('click', (e) => {
+            e.stopPropagation(); showInfoCard(1);
         });
 
         // ── Initialisation AR ──────────────────────────────────────
@@ -323,14 +267,14 @@
 
             anchor.onTargetFound = () => {
                 if (currentMode === 'scan') {
-                    statueVisible = true;
-                    showMsg('✅ Cible trouvée — touchez un point lumineux');
+                    showMsg('✅ Cible trouvée');
+                    infoBar.style.display = 'flex'; // Affiche les boutons d'infos
                 }
             };
             anchor.onTargetLost = () => {
                 if (currentMode === 'scan') {
-                    statueVisible = false;
-                    closeAnnotation();
+                    closeInfoCard();
+                    infoBar.style.display = 'none';
                     showMsg('🔍 Cherche la cible...');
                 }
             };
@@ -362,19 +306,6 @@
 
                 statueModel = wrapper;
 
-                // ── CALCUL DES OFFSETS APPLIQUÉS SELON VOS FACTEURS ──
-                const halfH = (size.y * scaleFactor) / 2;  
-                const halfW = (size.x * scaleFactor) / 2;  // Prise en compte de la largeur réelle
-                const halfZ = (size.z * scaleFactor) / 2;  
-
-                ANNOTATIONS.forEach(ann => {
-                    ann.offset = new THREE.Vector3(
-                        halfW * ann.xFactor,  // Axe X : décalage latéral proportionnel
-                        halfH * ann.yFactor,  // Axe Y : hauteur proportionnelle
-                        halfZ * ann.zFactor   // Axe Z : profondeur
-                    );
-                });
-
                 if (currentMode === 'scan') {
                     anchor.group.add(statueModel);
                     showMsg('🔍 Visez votre image cible');
@@ -386,9 +317,10 @@
 
             }, undefined, () => showMsg('❌ Erreur GLB'));
 
+            // Clic sur l'écran (Mode Tactile)
             arContainer.addEventListener('click', (e) => {
                 if (annotCard.style.display === 'block') {
-                    closeAnnotation(); return;
+                    closeInfoCard(); return;
                 }
                 if (currentMode !== 'touch' || !statueModel) return;
 
@@ -400,14 +332,13 @@
                 manualGroup.lookAt(lookTarget);
 
                 statueModel.visible = true;
-                statueVisible = true;
                 tapHint.style.display = 'none';
-                showMsg('✅ Touchez un point lumineux pour en savoir plus');
+                infoBar.style.display = 'flex'; // Rend les boutons d'infos disponibles
+                showMsg('');
             });
 
             renderer.setAnimationLoop(() => {
                 renderer.render(scene, camera);
-                updateDots();
             });
         }
 
@@ -430,7 +361,7 @@
                     if (mode === 'scan') showMsg('🔍 Visez votre image cible');
                     else { showMsg(''); tapHint.style.display = 'block'; }
                 } catch {
-                    showMsg('❌ Caméra bloquée — HTTPS requis');
+                    showMsg('❌ Caméra bloquée');
                 }
             }
         }
@@ -438,7 +369,8 @@
         function setMode(mode) {
             currentMode = mode;
             updateBtns();
-            closeAnnotation();
+            closeInfoCard();
+            infoBar.style.display = 'none';
             if (!statueModel) return;
 
             if (mode === 'scan') {
@@ -451,7 +383,6 @@
                 anchor.group.remove(statueModel);
                 manualGroup.add(statueModel);
                 statueModel.visible = false;
-                statueVisible = false;
                 tapHint.style.display = 'block';
                 showMsg('');
             }
@@ -469,9 +400,8 @@
             btnBack.style.display         = 'none';
             controls.style.display        = 'none';
             tapHint.style.display         = 'none';
-            closeAnnotation();
-            dots.forEach(d => d.style.display = 'none');
-            statueVisible = false;
+            infoBar.style.display         = 'none';
+            closeInfoCard();
         });
 
         document.getElementById('pick-scan').addEventListener('click',  () => launchAR('scan'));
