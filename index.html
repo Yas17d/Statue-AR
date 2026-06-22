@@ -216,7 +216,7 @@
             {
                 btnLabel: '4. L\'Artiste',
                 title: 'Idel Ianchelevici (1909-1994)',
-                body: 'Arrivé à Liège en 1928, il décroche le 1er prix de statuaire des Beaux-Arts en 1933. Installé ensuite en région parisienne, sa carrière est jalonnée de chefs-d’œuvre monumentaux acclamés à travers l\'Europe, comme <strong>Le Plongeur</strong> (Liège, 1939) ou <strong>Le Résistant</strong> (Fort de Breendonk, 1947).',
+                body: 'Arrivé à Liège en 1928, il décroche le 1er prix de statuaire des Beaux-Arts in 1933. Installé ensuite en région parisienne, sa carrière est jalonnée de chefs-d’œuvre monumentaux acclamés à travers l\'Europe, comme <strong>Le Plongeur</strong> (Liège, 1939) ou <strong>Le Résistant</strong> (Fort de Breendonk, 1947).',
                 tag: 'Biographie · Maître'
             },
             {
@@ -249,7 +249,10 @@
         let anchor       = null;
         let manualGroup  = null;
         let arStarted    = false;
-        let statueAnchored = false; // <-- Ajouté ici pour éviter les bugs de scope !
+        let statueAnchored = false;
+
+        // Variables globales pour stocker les proportions du fichier 3D d'origine
+        let rawModelSize = null;
 
         const showMsg = t => { msgEl.textContent = t; };
 
@@ -284,6 +287,31 @@
             e.stopPropagation();
             updateInfoDisplay();
         });
+
+        // Fonction maîtresse qui reconfigure la taille et la rotation selon le mode actif
+        function configureModelForMode() {
+            if (!statueModel || !rawModelSize) return;
+
+            const maxDim = Math.max(rawModelSize.x, rawModelSize.y, rawModelSize.z);
+            const statueRealHeight = 3.4; // Hauteur réelle en mètres de la statue
+
+            if (currentMode === 'scan') {
+                // Formule mathématique MindAR pour lier l'échelle à la taille de l'image cible (0.2m = feuille A4)
+                const targetWidthMeters = 0.2;
+                const scaleFactor = (statueRealHeight / maxDim) * targetWidthMeters;
+                statueModel.scale.setScalar(scaleFactor);
+
+                // Rotation requise par l'ancre MindAR
+                statueModel.rotation.set(-Math.PI / 2, Math.PI, Math.PI);
+            } else {
+                // Mode Tactile : Échelle 1:1 absolue dans l'espace Three.js (3.4 mètres de haut)
+                const scaleFactor = statueRealHeight / maxDim;
+                statueModel.scale.setScalar(scaleFactor);
+
+                // Remise à zéro de la rotation pour que le lookAt() fonctionne correctement
+                statueModel.rotation.set(0, 0, 0);
+            }
+        }
 
         function initAR() {
             mindarTarget = new MindARThree({
@@ -332,23 +360,16 @@
                 const model = gltf.scene;
                 const box    = new THREE.Box3().setFromObject(model);
                 const center = box.getCenter(new THREE.Vector3());
-                const size   = box.getSize(new THREE.Vector3());
+                rawModelSize = box.getSize(new THREE.Vector3());
+                
+                // Centrage parfait du modèle géométrique
                 model.position.sub(center);
 
-                const wrapper = new THREE.Group();
-                wrapper.add(model);
+                statueModel = new THREE.Group();
+                statueModel.add(model);
 
-                const targetWidthMeters = 0.2;
-                const statueRealHeight  = 3.5;
-                const scaleFactor = (statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters;
-                wrapper.scale.setScalar(scaleFactor);
-
-                // Pivot pour le mode cible
-                wrapper.rotation.x = -Math.PI / 2;
-                wrapper.rotation.y =  Math.PI;
-                wrapper.rotation.z =  Math.PI;
-
-                statueModel = wrapper;
+                // Applique la bonne configuration initiale
+                configureModelForMode();
 
                 if (currentMode === 'scan') {
                     anchor.group.add(statueModel);
@@ -361,7 +382,6 @@
 
             }, undefined, () => showMsg('❌ Erreur GLB'));
 
-            // Système de clic tactile corrigé et ancré
             arContainer.addEventListener('click', (e) => {
                 if (annotCard.style.display === 'block') {
                     closeInfoCard(); return;
@@ -369,9 +389,11 @@
                 if (currentMode !== 'touch' || !statueModel) return;
 
                 if (!statueAnchored) {
-                    // Positionnement stable face caméra
+                    // Positionne le groupe à 4 mètres devant la caméra d'origine (0,0,0)
+                    // Placé légèrement vers le bas (Y = -1.5) pour simuler le niveau du sol
                     manualGroup.position.set(0, -1.5, -4);
-                    // Force l'objet à faire face à l'utilisateur (caméra fixée à 0, -1.5, 0)
+                    
+                    // Oriente la statue pour qu'elle regarde directement vers le centre de l'écran
                     manualGroup.lookAt(new THREE.Vector3(0, -1.5, 0));
                     statueAnchored = true;
                 }
@@ -418,6 +440,9 @@
             closeInfoCard();
             carouselBar.style.display = 'none';
             if (!statueModel) return;
+
+            // Recalcul de l'échelle et des rotations pour le nouveau mode choisi
+            configureModelForMode();
 
             if (mode === 'scan') {
                 manualGroup.remove(statueModel);
