@@ -82,6 +82,7 @@
             border-radius: 30px; padding: 4px;
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            cursor: pointer; /* Indique que la barre est cliquable */
         }
         .nav-arrow {
             width: 40px; height: 40px; border: none;
@@ -152,7 +153,7 @@
  
         <div class="mode-card" id="pick-perspectives">
             <span class="icon">✨</span>
-            <div><h2>Perspectives</h2><span>Contextes d'usages au Sart Tilman</span></div>
+            <div><h2>Perspectives</h2><span>Accessibilité et démocratisation de l'art</span></div>
         </div>
  
         <div class="mode-card" id="pick-scan">
@@ -198,47 +199,35 @@
                 {
                     btnLabel: '1. Guide de l\'App',
                     title: '📱 Mode d\'emploi de l\'application',
-                    body: 'Bienvenue ! Cette application vous permet de découvrir les secrets des œuvres d\'art du Sart Tilman.<br><br><strong>Comment utiliser le mode Scan AR ?</strong><br>1. Cliquez sur le bouton "Mode Scan" depuis l\'accueil.<br>2. Autorisez l\'accès à l\'appareil photo.<br>3. Dirigez votre smartphone vers le panneau ou l\'image cible près de l\'œuvre pour faire apparaître la statue 3D animée.',
+                    body: 'Bienvenue ! Cette application vous permet de découvrir les œuvres d\'art du Sart Tilman en réalité augmentée.<br><br><strong>Comment utiliser le mode Scan AR ?</strong><br>1. Cliquez sur le bouton "Mode Scan".<br>2. Autorisez l\'accès à votre appareil photo.<br>3. Dirigez votre smartphone vers <strong>la statue ou une photo de celle-ci</strong> pour faire apparaître le modèle 3D superposé.',
                     tag: 'Aide · Guide'
-                },
-                {
-                    btnLabel: '2. Le Pâtre',
-                    title: 'Le Pâtre (Fiche technique)',
-                    body: '<strong>Artiste :</strong> Idel Ianchelevici<br><strong>Année :</strong> 1956<br><strong>Matériaux :</strong> Bronze<br><strong>Dimensions :</strong> Hauteur : 340 cm · Longueur : 93 cm · Largeur : 54,5 cm.',
-                    tag: 'Général · Statuaire'
-                },
-                {
-                    btnLabel: '3. Origine',
-                    title: 'Le projet colonial',
-                    body: 'Au milieu des années 1950, l’État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa) dédié à l\'explorateur Stanley. Le sculpteur bouleverse le projet et choisit de créer de monumentales <strong>statues en ronde-bosse</strong>.',
-                    tag: 'Histoire · Contexte'
                 }
             ],
             perspectives: [
                 {
-                    btnLabel: '1. Médiation culturelle',
-                    title: '🏛️ Un musée à ciel ouvert réinventé',
-                    body: 'Le Musée en plein air du Sart Tilman est immense et intégré à la nature. L\'intégration de la réalité augmentée (AR) permet une <strong>médiation culturelle interactive</strong> sur place. Elle résout le défi de l\'affichage de panneaux physiques encombrants en pleine forêt tout en enrichissant le parcours des promeneurs.',
-                    tag: 'Sart Tilman · Innovation'
+                    btnLabel: '1. Un art pour tous',
+                    title: '🌍 Démocratiser l\'accès aux œuvres',
+                    body: 'L\'objectif principal de cette application est de rendre les œuvres existantes du Sart Tilman <strong>accessibles à absolument tout le monde</strong>. La réalité augmentée permet de s\'affranchir des distances géographiques, offrant la possibilité d\'admirer ces chefs-d\'œuvre depuis chez soi, à l\'école ou de n\'importe où dans le monde.',
+                    tag: 'Accessibilité · Inclusion'
                 },
                 {
-                    btnLabel: '2. Préservation digitale',
-                    title: '⏳ Conserver et documenter',
-                    body: 'Les sculptures en extérieur subissent les aléas climatiques. Numériser ces œuvres et pouvoir les visualiser à distance ou sur place permet de documenter leur état à une époque précise, offrant un jalon de <strong>préservation du patrimoine numérique</strong> accessible à tous.',
-                    tag: 'Patrimoine · Futur'
+                    btnLabel: '2. Inclusion & Mobilité',
+                    title: '♿ Dépasser les obstacles physiques',
+                    body: 'Le Musée en plein air s\'étend sur un vaste domaine naturel boisé, ce qui peut représenter un défi pour les personnes à mobilité réduite ou en situation de handicap. Grâce à ce dispositif, <strong>les œuvres viennent directement à l\'utilisateur</strong>, garantissant une égalité d\'accès à la culture sans se soucier des contraintes de terrain.',
+                    tag: 'Égalité · Mobilité'
                 },
                 {
-                    btnLabel: '3. Accessibilité',
-                    title: '🌍 L\'art hors des murs du musée',
-                    body: 'L\'AR permet de manipuler virtuellement une œuvre parfois monumentale. C\'est un outil pédagogique puissant pour les écoles, les chercheurs ou les personnes à mobilité réduite désireuses de découvrir la collection liégeoise sans contraintes physiques.',
-                    tag: 'Inclusion · Éducation'
+                    btnLabel: '3. Médiation enrichie',
+                    title: '📖 Comprendre et manipuler',
+                    body: 'Au-delà de l\'aspect purement visuel, cette technologie permet de superposer des explications claires et interactives sur les œuvres de la collection liégeoise. Cette approche s\'adresse à tous les publics (familles, curieux, étudiants), rendant l\'art contemporain beaucoup plus accessible et compréhensible.',
+                    tag: 'Pédagogie · Démocratisation'
                 }
             ],
             scan: [
                 {
-                    btnLabel: 'Modèle 3D',
-                    title: 'Le Pâtre (Scan AR actif)',
-                    body: 'Visez la cible graphique posée près de l\'œuvre originale au Sart Tilman. La statue virtuelle va se caler en superposition pour vous livrer ses secrets et détails structurels.',
+                    btnLabel: 'ℹ️ Afficher/Masquer les infos',
+                    title: 'Le Pâtre (Scan AR)',
+                    body: 'Le modèle 3D est actuellement superposé à la cible. <strong>Artiste :</strong> Idel Ianchelevici.<br>Vous pouvez manipuler votre téléphone pour observer les détails de l\'œuvre sous différents angles.',
                     tag: 'Scan · Réalité Augmentée'
                 }
             ]
@@ -278,9 +267,26 @@
             document.getElementById('ac-body').innerHTML  = data.body;
             document.getElementById('ac-tag').textContent   = data.tag;
             
-            annotCard.style.display = 'flex';
+            // On affiche automatiquement la carte texte UNIQUEMENT si on n'est pas en mode Scan
+            if (currentMode !== 'scan') {
+                annotCard.style.display = 'flex';
+            }
         }
  
+        // Gestion des clics sur la barre du carrousel pour afficher/masquer le texte en mode scan
+        carouselBar.addEventListener('click', (e) => {
+            // Empêcher le déclenchement si on clique sur les flèches (qui ont leur propre événement)
+            if (e.target.classList.contains('nav-arrow')) return;
+
+            if (currentMode === 'scan') {
+                if (annotCard.style.display === 'none' || annotCard.style.display === '') {
+                    annotCard.style.display = 'flex';
+                } else {
+                    annotCard.style.display = 'none';
+                }
+            }
+        });
+
         document.getElementById('nav-prev').addEventListener('click', (e) => {
             e.stopPropagation();
             const len = DATA_INFOS[currentMode].length;
@@ -317,6 +323,7 @@
                 if (currentMode === 'scan') {
                     showMsg('✅ Cible trouvée');
                     carouselBar.style.display = 'flex';
+                    annotCard.style.display = 'none'; // Garde le texte caché par défaut pour voir la 3D
                     updateInfoDisplay();
                 }
             };
@@ -372,7 +379,7 @@
             updateBtns();
  
             if (mode === 'scan') {
-                // Mode AR : On affiche le conteneur vidéo, le texte apparaîtra quand la cible sera trouvée
+                // Mode AR : On affiche le conteneur vidéo, le texte apparaîtra quand la cible sera trouvée ET cliquée
                 arContainer.style.display = 'block';
                 msgEl.style.display       = 'block';
                 carouselBar.style.display = 'none';
@@ -385,12 +392,12 @@
                         await mindarTarget.start();
                         document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
                         arStarted = true;
-                        showMsg('🔍 Visez votre image cible');
+                        showMsg('🔍 Visez la statue ou une photo');
                     } catch {
                         showMsg('❌ Caméra bloquée');
                     }
                 } else {
-                    showMsg('🔍 Visez votre image cible');
+                    showMsg('🔍 Visez la statue ou une photo');
                 }
             } else {
                 // Modes purement textuels : On éteint STRICTEMENT la caméra AR et on masque le conteneur vidéo
@@ -448,4 +455,5 @@
     </script>
 </body>
 </html>
+
 
