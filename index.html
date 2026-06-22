@@ -80,7 +80,7 @@
         /* ── Points lumineux AR ── */
         .ar-dot {
             position: fixed;
-            width: 20px; height: 20px;
+            width: 24px; height: 24px;
             transform: translate(-50%, -50%);
             cursor: pointer;
             z-index: 9999;
@@ -91,7 +91,7 @@
             position: absolute; inset: 0;
             border-radius: 50%;
             background: rgba(255, 200, 50, 0.9);
-            box-shadow: 0 0 12px 4px rgba(255, 200, 50, 0.6);
+            box-shadow: 0 0 14px 5px rgba(255, 200, 50, 0.7);
             animation: pulse-dot 1.4s ease-in-out infinite;
         }
         .ar-dot .ring-outer {
@@ -179,8 +179,6 @@
 
     <div class="ar-dot" id="dot-0"><div class="ring-outer"></div><div class="ring"></div></div>
     <div class="ar-dot" id="dot-1"><div class="ring-outer"></div><div class="ring"></div></div>
-    <div class="ar-dot" id="dot-2"><div class="ring-outer"></div><div class="ring"></div></div>
-    <div class="ar-dot" id="dot-3"><div class="ring-outer"></div><div class="ring"></div></div>
 
     <div id="annotation-card">
         <div class="ac-header">
@@ -197,45 +195,25 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-        // ── Données des annotations ────────────────────────────────
-        // MODIFICATION STRATÉGIQUE : Les offsets correspondent désormais au repère final visuel de Three.js (en mètres).
-        // Le centre (0,0,0) est l'entrejambe/le milieu exact de la statue.
-        // Y = Hauteur (Positif = monte vers la tête, Négatif = descend vers le socle)
-        // X = Gauche/Droite
-        // Z = Avant/Arrière
+        // ── Vos 2 cibles uniquement ───────────────────────────────
+        // IMPORTANT : J'ai mis des valeurs très proches (0.2 / 0.3) pour s'adapter à la nouvelle taille de la statue.
         const ANNOTATIONS = [
             {
                 id: 0,
-                label: 'Tête',
-                offset: new THREE.Vector3(0, 1.6, 0.0), // Monte de 1.6m au dessus du centre
-                title: 'La tête',
-                body: 'Décrivez ici les détails de la tête de la statue : style, époque, matériau, symbolisme...',
-                tag: 'Sculpture · XIXe s.'
-            },
-            {
-                id: 1,
-                label: 'Torse',
-                offset: new THREE.Vector3(0, 0.5, 0.2), // Légèrement plus haut et en avant
-                title: 'Le torse',
-                body: 'Description du torse : posture, vêtements, décoration, technique de taille...',
-                tag: 'Anatomie · Drapé'
-            },
-            {
-                id: 2,
                 label: 'Bras',
-                offset: new THREE.Vector3(0.5, 0.4, 0.1), // Décalé sur le côté droit
+                offset: new THREE.Vector3(0.2, 0.1, 0.1), // X (côté), Y (hauteur), Z (profondeur)
                 title: 'Le bras',
                 body: 'Le bras et la main : geste symbolique, attribut tenu, détails de la sculpture...',
                 tag: 'Geste · Symbolisme'
             },
             {
-                id: 3,
+                id: 1,
                 label: 'Socle',
-                offset: new THREE.Vector3(0, -1.6, 0.0), // Descend de 1.6m sous le centre
+                offset: new THREE.Vector3(0.0, -0.3, 0.0), // Descend sous l'entrejambe
                 title: 'Le socle',
                 body: 'Le socle : inscription, date, matériau, contexte historique de l\'érection...',
                 tag: 'Histoire · Épigraphie'
-            },
+            }
         ];
 
         // ── UI refs ────────────────────────────────────────────────
@@ -251,7 +229,7 @@
         const dots            = ANNOTATIONS.map(a => document.getElementById('dot-' + a.id));
 
         let currentMode   = null;
-        let statueModel   = null; // Notre wrapper global
+        let statueModel   = null; 
         let mindarTarget = null;
         let camera       = null;
         let renderer     = null;
@@ -260,13 +238,11 @@
         let arStarted    = false;
         let statueVisible = false;
 
-        // Tableau qui contiendra nos petits objets 3D repères cachés
         const markerObjects = [];
         const tempWorldPos = new THREE.Vector3();
 
         const showMsg = t => { msgEl.textContent = t; };
 
-        // ── Projection 3D → écran ──────────────────────────────────
         function projectToScreen(worldPos) {
             const v = worldPos.clone().project(camera);
             return {
@@ -286,9 +262,7 @@
                 const marker = markerObjects[i];
                 if (!marker) return;
 
-                // On extrait la position absolue monde du repère 3D directement
                 marker.getWorldPosition(tempWorldPos);
-
                 const screen = projectToScreen(tempWorldPos);
                 const dot = dots[i];
 
@@ -304,7 +278,6 @@
             });
         }
 
-        // ── Fiche annotation ───────────────────────────────────────
         function showAnnotation(ann) {
             document.getElementById('ac-title').textContent = ann.title;
             document.getElementById('ac-body').textContent  = ann.body;
@@ -339,8 +312,6 @@
             scene.add(new THREE.AmbientLight(0xffffff, 1.5));
             const dir = new THREE.DirectionalLight(0xffffff, 1.0);
             dir.position.set(2, 4, 5); scene.add(dir);
-            const dir2 = new THREE.DirectionalLight(0xffffff, 0.5);
-            dir2.position.set(-2, -2, -3); scene.add(dir2);
 
             anchor      = mindarTarget.addAnchor(0);
             manualGroup = new THREE.Group();
@@ -349,7 +320,7 @@
             anchor.onTargetFound = () => {
                 if (currentMode === 'scan') {
                     statueVisible = true;
-                    showMsg('✅ Cible trouvée — touchez un point lumineux');
+                    showMsg('✅ Cible trouvée');
                 }
             };
             anchor.onTargetLost = () => {
@@ -360,7 +331,6 @@
                 }
             };
 
-            // Chargement GLB
             const draco = new DRACOLoader();
             draco.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
             const loader = new GLTFLoader();
@@ -371,30 +341,28 @@
                 
                 const box    = new THREE.Box3().setFromObject(model);
                 const center = box.getCenter(new THREE.Vector3());
-                const size   = box.getSize(new THREE.Vector3());
                 
-                // 1. Centrage parfait de la géométrie au milieu de son conteneur
+                // Centrage parfait sur l'origine [0,0,0]
                 model.position.sub(center);
 
                 const wrapper = new THREE.Group();
                 wrapper.add(model);
 
-                // 2. Application de l'échelle absolue basée sur la hauteur réelle (3.5m)
-                const targetWidthMeters = 0.2;
-                const statueRealHeight  = 3.5;
-                wrapper.scale.setScalar((statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters);
+                // ── CONFIGURATION DIRECTE DE L'ÉCHELLE ──
+                // Si la statue est trop petite, augmente cette valeur (ex: 0.1 ou 0.2)
+                // Si elle est trop grande, diminue-la (ex: 0.01)
+                wrapper.scale.setScalar(0.3);
 
-                // 3. Rotations de correction appliquées sur le wrapper
+                // Rotations requises pour caler le modèle Metashape droit
                 wrapper.rotation.x = -Math.PI / 2;
                 wrapper.rotation.y = Math.PI;
                 wrapper.rotation.z = Math.PI;
 
-                // 4. ANCRAGE DES REPÈRES : On attache les repères directement sur le wrapper final.
-                // Comme ils sont au même niveau géométrique, l'échelle et les rotations fonctionnent à 100%.
+                // Ajout des marqueurs directement liés au repère final du wrapper
                 ANNOTATIONS.forEach((ann) => {
                     const marker = new THREE.Object3D();
                     marker.position.copy(ann.offset);
-                    wrapper.add(marker); // Attaché à la statue !
+                    wrapper.add(marker); 
                     markerObjects.push(marker);
                 });
 
@@ -410,7 +378,6 @@
                 }
             }, undefined, () => showMsg('❌ Erreur GLB'));
 
-            // Tap mode tactile
             arContainer.addEventListener('click', (e) => {
                 if (annotCard.style.display === 'block') {
                     closeAnnotation(); return;
@@ -427,17 +394,14 @@
                 statueModel.visible = true;
                 statueVisible = true;
                 tapHint.style.display = 'none';
-                showMsg('✅ Touchez un point lumineux pour en savoir plus');
             });
 
-            // Boucle de rendu
             renderer.setAnimationLoop(() => {
                 renderer.render(scene, camera);
                 updateDots();
             });
         }
 
-        // ── Lancer l'AR ───────────────────────────────────────────
         async function launchAR(mode) {
             selectionScreen.style.display = 'none';
             arContainer.style.display     = 'block';
@@ -452,18 +416,16 @@
                 initAR();
                 try {
                     await mindarTarget.start();
-                    document.querySelectorAll('.mindar-ui-overlay')
-                        .forEach(el => el.style.display = 'none');
+                    document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
                     arStarted = true;
                     if (mode === 'scan') showMsg('🔍 Visez votre image cible');
                     else { showMsg(''); tapHint.style.display = 'block'; }
                 } catch {
-                    showMsg('❌ Caméra bloquée — HTTPS requis');
+                    showMsg('❌ Caméra bloquée');
                 }
             }
         }
 
-        // ── Switch mode ───────────────────────────────────────────
         function setMode(mode) {
             currentMode = mode;
             updateBtns();
