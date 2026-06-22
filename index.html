@@ -14,17 +14,17 @@
     </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, sans-serif; }
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, sans-serif; background: #0a0a0a; }
 
         #selection-screen {
             position: fixed; inset: 0; background: #0a0a0a;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             gap: 16px; z-index: 100000; padding: 2rem;
-            overflow-y: auto;
         }
         #selection-screen h1 { color: white; font-size: 24px; font-weight: 600; text-align: center; margin-bottom: 4px; }
         #selection-screen p  { color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; margin-bottom: 12px; }
+        
         .mode-card {
             width: 100%; max-width: 360px;
             background: rgba(255,255,255,0.07);
@@ -53,7 +53,7 @@
             background: rgba(0,0,0,0.6); color: white;
             border: 1px solid rgba(255,255,255,0.2);
             padding: 10px 16px; border-radius: 10px;
-            font-size: 14px; cursor: pointer; z-index: 99999;
+            font-size: 14px; cursor: pointer; z-index: 100005;
             display: none; -webkit-tap-highlight-color: transparent;
         }
         
@@ -71,16 +71,6 @@
             flex: 1; text-align: center;
         }
         .btn.active { background: rgba(79,142,247,0.85); border-color: transparent; color: white; }
-
-        #tap-hint {
-            position: fixed; bottom: 130px; left: 50%; transform: translateX(-50%);
-            background: rgba(255,255,255,0.15); color: white;
-            padding: 10px 20px; border-radius: 20px; font-size: 13px;
-            z-index: 99999; display: none; text-align: center;
-            border: 1px solid rgba(255,255,255,0.3);
-            animation: pulse-hint 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse-hint { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 
         /* ── Barre de navigation ── */
         #carousel-navigation-bar {
@@ -111,7 +101,7 @@
 
         /* ── Fiche annotation ── */
         #annotation-card {
-            position: fixed; bottom: 100px; left: 50%;
+            position: fixed; top: 140px; bottom: 100px; left: 50%;
             transform: translateX(-50%);
             background: rgba(26, 26, 26, 0.95);
             border: 1px solid rgba(255, 200, 50, 0.4);
@@ -120,32 +110,28 @@
             z-index: 100000; display: none;
             backdrop-filter: blur(12px);
             box-shadow: 0 12px 30px rgba(0,0,0,0.6);
-            animation: slide-up 0.25s ease;
-        }
-        @keyframes slide-up {
-            from { transform: translateX(-50%) translateY(15px); opacity: 0; }
-            to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+            display: flex; flex-direction: column;
         }
         #annotation-card .ac-header {
             display: flex; align-items: center;
             justify-content: space-between; margin-bottom: 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 8px;
+            padding-bottom: 8px; flex-shrink: 0;
         }
         #annotation-card .ac-title {
             color: #ffffff; font-size: 16px; font-weight: 700;
         }
-        #annotation-card .ac-close {
-            color: rgba(255,255,255,0.4); font-size: 18px;
-            cursor: pointer; padding: 2px 6px;
-        }
         #annotation-card .ac-body {
             color: rgba(255,255,255,0.85);
-            font-size: 13.5px; line-height: 1.5;
+            font-size: 14px; line-height: 1.5;
+            overflow-y: auto; padding-right: 4px; flex-grow: 1;
         }
         #annotation-card .ac-body strong { color: #ffc832; font-weight: 500; }
+        #annotation-card .ac-footer {
+            margin-top: 12px; flex-shrink: 0;
+        }
         #annotation-card .ac-tag {
-            display: inline-block; margin-top: 12px;
+            display: inline-block;
             background: rgba(255,200,50,0.12);
             color: #ffc832; border: 1px solid rgba(255,200,50,0.25);
             border-radius: 4px; padding: 2px 8px; font-size: 11px;
@@ -155,27 +141,23 @@
 </head>
 <body>
 
-    <!-- Écran d'accueil réorganisé -->
     <div id="selection-screen">
         <h1>🏛️ Patrimoine AR</h1>
         <p>Musée en plein air du Sart Tilman</p>
         
-        <!-- 1. Informations en haut -->
         <div class="mode-card highlight" id="pick-info">
             <span class="icon">📍</span>
-            <div><h2>Informations</h2><span>Guide d'utilisation et aide à la navigation</span></div>
+            <div><h2>Informations</h2><span>Guide d'utilisation de l'application</span></div>
         </div>
 
-        <!-- 2. Perspectives (Nouveau bouton contextuel) -->
         <div class="mode-card" id="pick-perspectives">
             <span class="icon">✨</span>
-            <div><h2>Perspectives</h2><span>Pourquoi l'AR au Sart Tilman ? Contextes d'usage</span></div>
+            <div><h2>Perspectives</h2><span>Contextes d'usages au Sart Tilman</span></div>
         </div>
 
-        <!-- 3. Mode Scan en bas -->
         <div class="mode-card" id="pick-scan">
             <span class="icon">📷</span>
-            <div><h2>Mode Scan</h2><span>Détecte l'œuvre automatiquement via la cible</span></div>
+            <div><h2>Mode Scan (AR)</h2><span>Détecte l'œuvre automatiquement via votre caméra</span></div>
         </div>
     </div>
 
@@ -186,10 +168,8 @@
     <div id="controls">
         <button id="btn-info" class="btn">📍 Infos</button>
         <button id="btn-perspectives" class="btn">✨ Perspectives</button>
-        <button id="btn-scan" class="btn">📷 Scan</button>
+        <button id="btn-scan" class="btn">📷 Scan AR</button>
     </div>
-    
-    <div id="tap-hint">👆 Touchez l'écran pour faire apparaître l'élément visuel</div>
 
     <div id="carousel-navigation-bar">
         <button class="nav-arrow" id="nav-prev">◂</button>
@@ -200,10 +180,11 @@
     <div id="annotation-card">
         <div class="ac-header">
             <span class="ac-title" id="ac-title">Titre</span>
-            <span class="ac-close" id="ac-close">✕</span>
         </div>
         <div class="ac-body" id="ac-body">Texte</div>
-        <span class="ac-tag" id="ac-tag">Tag</span>
+        <div class="ac-footer">
+            <span class="ac-tag" id="ac-tag">Tag</span>
+        </div>
     </div>
 
     <script type="module">
@@ -212,25 +193,24 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-        // Base de données restructurée intégrant l'aide et les perspectives du Sart Tilman
         const DATA_INFOS = {
             info: [
                 {
                     btnLabel: '1. Guide de l\'App',
                     title: '📱 Mode d\'emploi de l\'application',
-                    body: 'Bienvenue ! Cette application vous permet de découvrir les secrets des œuvres d\'art du Sart Tilman en Réalité Augmentée.<br><br><strong>Comment faire ?</strong><br>1. Naviguez avec les flèches ◂ ▸ de la barre du bas pour lire les différentes fiches.<br>2. En mode libre, <strong>touchez l\'écran de votre téléphone</strong> pour faire apparaître ou recentrer le modèle 3D face à vous.',
-                    tag: 'Aide · Navigation'
+                    body: 'Bienvenue ! Cette application vous permet de découvrir les secrets des œuvres d\'art du Sart Tilman.<br><br><strong>Comment utiliser le mode Scan AR ?</strong><br>1. Cliquez sur le bouton "Mode Scan" depuis l\'accueil.<br>2. Autorisez l\'accès à l\'appareil photo.<br>3. Dirigez votre smartphone vers le panneau ou l\'image cible près de l\'œuvre pour faire apparaître la statue 3D animée.',
+                    tag: 'Aide · Guide'
                 },
                 {
-                    btnLabel: '2. Fiche Technique',
+                    btnLabel: '2. Le Pâtre',
                     title: 'Le Pâtre (Fiche technique)',
                     body: '<strong>Artiste :</strong> Idel Ianchelevici<br><strong>Année :</strong> 1956<br><strong>Matériaux :</strong> Bronze<br><strong>Dimensions :</strong> Hauteur : 340 cm · Longueur : 93 cm · Largeur : 54,5 cm.',
                     tag: 'Général · Statuaire'
                 },
                 {
                     btnLabel: '3. Origine',
-                    title: 'Le projet colonial (1/2)',
-                    body: 'Au milieu des années 1950, l’État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa) dédié à l\'explorateur Stanley. Le sculpteur bouleverse le projet et choisit de créer des <strong>statues en ronde-bosse</strong>.',
+                    title: 'Le projet colonial',
+                    body: 'Au milieu des années 1950, l’État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa) dédié à l\'explorateur Stanley. Le sculpteur bouleverse le projet et choisit de créer de monumentales <strong>statues en ronde-bosse</strong>.',
                     tag: 'Histoire · Contexte'
                 }
             ],
@@ -238,33 +218,34 @@
                 {
                     btnLabel: '1. Médiation culturelle',
                     title: '🏛️ Un musée à ciel ouvert réinventé',
-                    body: 'Le Musée en plein air du Sart Tilman est immense et intégré à la nature. L\'intégration de la réalité augmentée (AR) permet une <strong>médiation culturelle interactive</strong> sur place. Elle résout le défi de l\'affichage de panneaux physiques en forêt tout en enrichissant le parcours des promeneurs.',
+                    body: 'Le Musée en plein air du Sart Tilman est immense et intégré à la nature. L\'intégration de la réalité augmentée (AR) permet une <strong>médiation culturelle interactive</strong> sur place. Elle résout le défi de l\'affichage de panneaux physiques encombrants en pleine forêt tout en enrichissant le parcours des promeneurs.',
                     tag: 'Sart Tilman · Innovation'
                 },
                 {
                     btnLabel: '2. Préservation digitale',
                     title: '⏳ Conserver et documenter',
-                    body: 'Les sculptures en extérieur subissent les aléas climatiques. Numériser ces œuvres et les intégrer en AR permet de documenter leur état à une époque précise, offrant un jalon de <strong>préservation du patrimoine immatériel et numérique</strong> accessible à tous.',
+                    body: 'Les sculptures en extérieur subissent les aléas climatiques. Numériser ces œuvres et pouvoir les visualiser à distance ou sur place permet de documenter leur état à une époque précise, offrant un jalon de <strong>préservation du patrimoine numérique</strong> accessible à tous.',
                     tag: 'Patrimoine · Futur'
                 },
                 {
-                    btnLabel: '3. Accessibilité universelle',
+                    btnLabel: '3. Accessibilité',
                     title: '🌍 L\'art hors des murs du musée',
-                    body: 'L\'AR permet de manipuler, zoomer et tourner virtuellement autour d\'une œuvre parfois monumentale ou inaccessible. C\'est un outil pédagogique puissant pour les écoles, les chercheurs ou les personnes à mobilité réduite désireuses de découvrir la collection liégeoise.',
+                    body: 'L\'AR permet de manipuler virtuellement une œuvre parfois monumentale. C\'est un outil pédagogique puissant pour les écoles, les chercheurs ou les personnes à mobilité réduite désireuses de découvrir la collection liégeoise sans contraintes physiques.',
                     tag: 'Inclusion · Éducation'
                 }
             ],
             scan: [
                 {
-                    btnLabel: '1. Chef-d\'œuvre',
-                    title: 'Le Pâtre (Numérisation)',
-                    body: 'En orientant votre appareil vers la cible graphique imprimée ou le panneau de l\'œuvre, le modèle 3D du Pâtre vient se superposer à son emplacement idéal pour révéler sa structure d\'origine.',
-                    tag: 'Scan · Reconnaissance'
+                    btnLabel: 'Modèle 3D',
+                    title: 'Le Pâtre (Scan AR actif)',
+                    body: 'Visez la cible graphique posée près de l\'œuvre originale au Sart Tilman. La statue virtuelle va se caler en superposition pour vous livrer ses secrets et détails structurels.',
+                    tag: 'Scan · Réalité Augmentée'
                 }
             ]
         };
 
         let currentIndex = 0;
+        let currentMode   = null;
         
         const selectionScreen = document.getElementById('selection-screen');
         const arContainer     = document.getElementById('ar-container');
@@ -274,18 +255,15 @@
         const btnScan         = document.getElementById('btn-scan');
         const btnInfo         = document.getElementById('btn-info');
         const btnPersp        = document.getElementById('btn-perspectives');
-        const tapHint         = document.getElementById('tap-hint');
         const annotCard       = document.getElementById('annotation-card');
         const carouselBar     = document.getElementById('carousel-navigation-bar');
         const carouselTitle   = document.getElementById('carousel-title');
 
-        let currentMode   = null;
         let statueModel   = null;
         let mindarTarget = null;
         let camera       = null;
         let renderer     = null;
         let anchor       = null;
-        let manualGroup  = null;
         let arStarted    = false;
 
         const showMsg = t => { msgEl.textContent = t; };
@@ -294,7 +272,6 @@
             const currentDataArray = DATA_INFOS[currentMode];
             if (!currentDataArray || currentDataArray.length === 0) return;
             
-            // Sécurité index
             if (currentIndex >= currentDataArray.length) currentIndex = 0;
             
             const data = currentDataArray[currentIndex];
@@ -304,12 +281,9 @@
             document.getElementById('ac-body').innerHTML  = data.body;
             document.getElementById('ac-tag').textContent   = data.tag;
             
-            annotCard.style.display = 'block';
+            annotCard.style.styleDisplay = 'flex';
+            annotCard.style.display = 'flex';
         }
-        
-        function closeInfoCard() { annotCard.style.display = 'none'; }
-
-        document.getElementById('ac-close').addEventListener('click', closeInfoCard);
 
         document.getElementById('nav-prev').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -325,33 +299,25 @@
             updateInfoDisplay();
         });
 
-        carouselBar.addEventListener('click', (e) => {
-            e.stopPropagation();
-            updateInfoDisplay();
-        });
-
         function initAR() {
+            if (mindarTarget) return;
+
             mindarTarget = new MindARThree({
                 container: arContainer,
                 imageTargetSrc: './targets.mind',
                 uiScanning: 'no',
             });
 
-            const result = mindarTarget;
-            renderer = result.renderer;
-            camera   = result.camera;
-            const scene = result.scene;
+            renderer = mindarTarget.renderer;
+            camera   = mindarTarget.camera;
+            const scene = mindarTarget.scene;
 
             renderer.outputColorSpace = THREE.SRGBColorSpace;
             scene.add(new THREE.AmbientLight(0xffffff, 1.5));
             const dir = new THREE.DirectionalLight(0xffffff, 1.0);
             dir.position.set(2, 4, 5); scene.add(dir);
-            const dir2 = new THREE.DirectionalLight(0xffffff, 0.5);
-            dir2.position.set(-2, -2, -3); scene.add(dir2);
 
-            anchor      = mindarTarget.addAnchor(0);
-            manualGroup = new THREE.Group();
-            scene.add(manualGroup);
+            anchor = mindarTarget.addAnchor(0);
 
             anchor.onTargetFound = () => {
                 if (currentMode === 'scan') {
@@ -362,7 +328,7 @@
             };
             anchor.onTargetLost = () => {
                 if (currentMode === 'scan') {
-                    closeInfoCard();
+                    annotCard.style.display = 'none';
                     carouselBar.style.display = 'none';
                     showMsg('🔍 Cherche la cible...');
                 }
@@ -393,87 +359,57 @@
                 wrapper.rotation.z =  Math.PI;
 
                 statueModel = wrapper;
-
-                handleModelPlacementForMode(currentMode);
+                anchor.group.add(statueModel);
 
             }, undefined, () => showMsg('❌ Erreur GLB'));
 
-            arContainer.addEventListener('click', (e) => {
-                if (annotCard.style.display === 'block') {
-                    closeInfoCard(); return;
-                }
-                if (currentMode === 'scan' || !statueModel) return;
-
-                const camDir = new THREE.Vector3(0, 0, -1);
-                camDir.applyQuaternion(camera.quaternion);
-                const pos = camera.position.clone().addScaledVector(camDir, 2);
-                manualGroup.position.copy(pos);
-                const lookTarget = new THREE.Vector3(camera.position.x, manualGroup.position.y, camera.position.z);
-                manualGroup.lookAt(lookTarget);
-
-                statueModel.visible = true;
-                tapHint.style.display = 'none';
-                carouselBar.style.display = 'flex';
-                updateInfoDisplay();
-                showMsg('');
-            });
-
             renderer.setAnimationLoop(() => {
-                renderer.render(scene, camera);
+                if (currentMode === 'scan') renderer.render(scene, camera);
             });
         }
 
-        function handleModelPlacementForMode(mode) {
-            if (!statueModel) return;
-            if (mode === 'scan') {
-                manualGroup.remove(statueModel);
-                anchor.group.add(statueModel);
-                statueModel.visible = true;
-                tapHint.style.display = 'none';
-                showMsg('🔍 Visez votre image cible');
-            } else {
-                anchor.group.remove(statueModel);
-                manualGroup.add(statueModel);
-                statueModel.visible = false;
-                tapHint.style.display = 'block';
-                showMsg('');
-            }
-        }
-
-        async function launchAR(mode) {
+        async function switchViewMode(mode) {
+            currentMode = mode;
+            currentIndex = 0;
+            
             selectionScreen.style.display = 'none';
-            arContainer.style.display     = 'block';
-            msgEl.style.display           = 'block';
             btnBack.style.display         = 'block';
             controls.style.display        = 'flex';
-            currentMode = mode;
-            currentIndex = 0;
             updateBtns();
 
-            if (!arStarted) {
-                showMsg('📷 Démarrage caméra...');
-                initAR();
-                try {
-                    await mindarTarget.start();
-                    document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
-                    arStarted = true;
-                    if (mode === 'scan') showMsg('🔍 Visez votre image cible');
-                    else { showMsg(''); tapHint.style.display = 'block'; }
-                } catch {
-                    showMsg('❌ Caméra bloquée');
+            if (mode === 'scan') {
+                // Mode AR activé : caméra requise
+                arContainer.style.display = 'block';
+                msgEl.style.display       = 'block';
+                carouselBar.style.display = 'none';
+                annotCard.style.display   = 'none';
+                
+                if (!arStarted) {
+                    showMsg('📷 Démarrage caméra...');
+                    initAR();
+                    try {
+                        await mindarTarget.start();
+                        document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
+                        arStarted = true;
+                        showMsg('🔍 Visez votre image cible');
+                    } catch {
+                        showMsg('❌ Caméra bloquée');
+                    }
+                } else {
+                    showMsg('🔍 Visez votre image cible');
                 }
             } else {
-                setMode(mode);
+                // Modes purement textuels : On coupe/masque la caméra et on montre l'UI
+                arContainer.style.display = 'none';
+                msgEl.style.display       = 'none';
+                carouselBar.style.display = 'flex';
+                
+                if (arStarted && mindarTarget) {
+                    mindarTarget.stop();
+                    arStarted = false;
+                }
+                updateInfoDisplay();
             }
-        }
-
-        function setMode(mode) {
-            currentMode = mode;
-            currentIndex = 0;
-            updateBtns();
-            closeInfoCard();
-            carouselBar.style.display = 'none';
-            handleModelPlacementForMode(mode);
         }
 
         function updateBtns() {
@@ -483,23 +419,26 @@
         }
 
         btnBack.addEventListener('click', () => {
+            if (arStarted && mindarTarget) {
+                mindarTarget.stop();
+                arStarted = false;
+            }
             selectionScreen.style.display = 'flex';
             arContainer.style.display     = 'none';
             msgEl.style.display           = 'none';
             btnBack.style.display         = 'none';
             controls.style.display        = 'none';
-            tapHint.style.display         = 'none';
             carouselBar.style.display     = 'none';
-            closeInfoCard();
+            annotCard.style.display       = 'none';
         });
 
-        document.getElementById('pick-info').addEventListener('click', () => launchAR('info'));
-        document.getElementById('pick-perspectives').addEventListener('click', () => launchAR('perspectives'));
-        document.getElementById('pick-scan').addEventListener('click',  () => launchAR('scan'));
+        document.getElementById('pick-info').addEventListener('click', () => switchViewMode('info'));
+        document.getElementById('pick-perspectives').addEventListener('click', () => switchViewMode('perspectives'));
+        document.getElementById('pick-scan').addEventListener('click',  () => switchViewMode('scan'));
         
-        btnScan.addEventListener('click',  () => setMode('scan'));
-        btnInfo.addEventListener('click', () => setMode('info'));
-        btnPersp.addEventListener('click', () => setMode('perspectives'));
+        btnScan.addEventListener('click',  () => switchViewMode('scan'));
+        btnInfo.addEventListener('click', () => switchViewMode('info'));
+        btnPersp.addEventListener('click', () => switchViewMode('perspectives'));
     </script>
 </body>
 </html>
