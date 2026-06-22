@@ -179,12 +179,10 @@
     </div>
     <div id="tap-hint">👆 Touchez l'écran pour poser la statue</div>
 
-    <!-- 4 points AR -->
-    <div class="ar-dot" id="dot-0"><div class="ring-outer"></div><div class="ring"></div></div>
+    <!-- 2 points AR -->
+   <div class="ar-dot" id="dot-0"><div class="ring-outer"></div><div class="ring"></div></div>
     <div class="ar-dot" id="dot-1"><div class="ring-outer"></div><div class="ring"></div></div>
-    <div class="ar-dot" id="dot-2"><div class="ring-outer"></div><div class="ring"></div></div>
-    <div class="ar-dot" id="dot-3"><div class="ring-outer"></div><div class="ring"></div></div>
-
+    
     <!-- Fiche annotation -->
     <div id="annotation-card">
         <div class="ac-header">
@@ -205,42 +203,26 @@
         // Positions en coordonnées locales relatives à la statue (après centrage)
         // x = gauche/droite, y = bas/haut, z = avant/arrière
         // Ajustez ces valeurs selon votre modèle réel
+       // ── Données annotations (offsets calculés après chargement) ──
         const ANNOTATIONS = [
             {
                 id: 0,
-                label: 'Tête',
-                // Sommet de la statue — y positif = haut
-                offset: new THREE.Vector3(0, 0.45, 0.05),
                 title: 'La tête',
                 body: 'Décrivez ici les détails de la tête de la statue : style, époque, matériau, symbolisme...',
-                tag: 'Sculpture · XIXe s.'
+                tag: 'Sculpture · XIXe s.',
+                // fraction verticale : 1.0 = sommet exact, 0.85 = légèrement sous le sommet
+                yFactor: 0.9,
+                zFactor: 0.3   // légèrement devant
             },
             {
                 id: 1,
-                label: 'Torse',
-                offset: new THREE.Vector3(0.05, 0.1, 0.1),
-                title: 'Le torse',
-                body: 'Description du torse : posture, vêtements, décoration, technique de taille...',
-                tag: 'Anatomie · Drapé'
-            },
-            {
-                id: 2,
-                label: 'Bras',
-                offset: new THREE.Vector3(0.35, 0.05, 0.05),
-                title: 'Le bras',
-                body: 'Le bras et la main : geste symbolique, attribut tenu, détails de la sculpture...',
-                tag: 'Geste · Symbolisme'
-            },
-            {
-                id: 3,
-                label: 'Socle',
-                offset: new THREE.Vector3(0, -0.45, 0.05),
                 title: 'Le socle',
                 body: 'Le socle : inscription, date, matériau, contexte historique de l\'érection...',
-                tag: 'Histoire · Épigraphie'
+                tag: 'Histoire · Épigraphie',
+                yFactor: -0.9, // bas de la statue
+                zFactor: 0.3
             },
         ];
-
         // ── UI refs ────────────────────────────────────────────────
         const selectionScreen = document.getElementById('selection-screen');
         const arContainer     = document.getElementById('ar-container');
@@ -368,35 +350,53 @@
             loader.setDRACOLoader(draco);
 
             loader.load('./Statue25.glb', (gltf) => {
-                const model = gltf.scene;
-                const box    = new THREE.Box3().setFromObject(model);
-                const center = box.getCenter(new THREE.Vector3());
-                const size   = box.getSize(new THREE.Vector3());
-                model.position.sub(center);
+            const model = gltf.scene;
 
-                const wrapper = new THREE.Group();
-                wrapper.add(model);
+            // Centrage
+            const box    = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size   = box.getSize(new THREE.Vector3());
+            model.position.sub(center);
 
-                const targetWidthMeters = 0.2;
-                const statueRealHeight  = 3.5;
-                wrapper.scale.setScalar((statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters);
+            const wrapper = new THREE.Group();
+            wrapper.add(model);
 
-                // Rotations corrigées
-                wrapper.rotation.x = -Math.PI / 2;
-                wrapper.rotation.y = Math.PI;
-                wrapper.rotation.z = Math.PI;
+            // Scale
+            const targetWidthMeters = 0.2;
+            const statueRealHeight  = 3.5;
+            const scaleFactor = (statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters;
+            wrapper.scale.setScalar(scaleFactor);
 
-                statueModel = wrapper;
+            // Rotations corrigées
+            wrapper.rotation.x = -Math.PI / 2;
+            wrapper.rotation.y =  Math.PI;
+            wrapper.rotation.z =  Math.PI;
 
-                if (currentMode === 'scan') {
-                    anchor.group.add(statueModel);
-                    showMsg('🔍 Visez votre image cible');
-                } else {
-                    manualGroup.add(statueModel);
-                    statueModel.visible = false;
-                    tapHint.style.display = 'block';
-                }
-            }, undefined, () => showMsg('❌ Erreur GLB'));
+            statueModel = wrapper;
+
+            // ── Calcul des offsets réels après scale ──────────────────
+            // La bounding box après scale en unités monde
+            const halfH = (size.y * scaleFactor) / 2;  // demi-hauteur réelle
+            const halfZ = (size.z * scaleFactor) / 2;  // demi-profondeur réelle
+
+              ANNOTATIONS.forEach(ann => {
+                ann.offset = new THREE.Vector3(
+                    0,
+                    halfH * ann.yFactor,   // y = haut/bas proportionnel
+                    halfZ * ann.zFactor    // z = légèrement devant
+                );
+            });
+
+            if (currentMode === 'scan') {
+                anchor.group.add(statueModel);
+                showMsg('🔍 Visez votre image cible');
+            } else {
+                manualGroup.add(statueModel);
+                statueModel.visible = false;
+                tapHint.style.display = 'block';
+            }
+
+        }, undefined, () => showMsg('❌ Erreur GLB'));
 
             // Tap mode tactile
             arContainer.addEventListener('click', (e) => {
