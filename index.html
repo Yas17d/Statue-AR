@@ -174,14 +174,14 @@
                 const maxDim = Math.max(size.x, size.y, size.z);
                 wrapper.scale.setScalar(0.8 / maxDim);
 
-                // ── ADAPTATION EXACTE AUX AXES METASHAPE ──
-                // Ton modèle a déjà Y=haut dans Metashape, donc pas de rotation sur X.
-                wrapper.rotation.x = 0; 
-                // Rotation de 180° sur Y pour faire pivoter la statue face à la caméra Three.js
+                // ── CORRECTION DU ROULIS (VUE DU DESSUS) ──
+                // On redresse la statue en la basculant de 90° vers l'arrière
+                wrapper.rotation.x = -Math.PI / 2; 
+                // On applique une rotation de 180° (Math.PI) pour compenser l'effet de dos
                 wrapper.rotation.y = Math.PI; 
                 wrapper.rotation.z = 0;
 
-                // Positionner la base sur le sol virtuel
+                // Ajuster la hauteur pour caler la base sur la grille
                 wrapper.position.y = size.y * (0.8 / maxDim) * 0.5;
 
                 statueModel = wrapper;
