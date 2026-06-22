@@ -14,102 +14,29 @@
     </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, sans-serif; }
 
-        /* ── Écran d'accueil amélioré style Web ── */
         #selection-screen {
-            position: fixed; inset: 0; 
-            background: linear-gradient(135deg, #0f0f11 0%, #1a1a24 100%);
+            position: fixed; inset: 0; background: #0a0a0a;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            z-index: 100000; padding: 2rem;
-            color: white;
+            gap: 24px; z-index: 100000; padding: 2rem;
         }
-        
-        .hero-container {
-            width: 100%;
-            max-width: 420px;
-            text-align: center;
-            animation: fadeIn 0.8s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .app-badge {
-            display: inline-block;
-            background: rgba(255, 200, 50, 0.1);
-            color: #ffc832;
-            border: 1px solid rgba(255, 200, 50, 0.25);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 16px;
-        }
-
-        #selection-screen h1 { 
-            font-size: 28px; 
-            font-weight: 800; 
-            margin-bottom: 12px;
-            letter-spacing: -0.5px;
-            background: linear-gradient(180deg, #ffffff 0%, #cccccc 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .description-text { 
-            color: rgba(255,255,255,0.65); 
-            font-size: 14px; 
-            line-height: 1.6;
-            margin-bottom: 32px; 
-            padding: 0 10px;
-        }
-
-        /* Bouton d'action principal */
+        #selection-screen h1 { color: white; font-size: 22px; font-weight: 600; text-align: center; }
+        #selection-screen p  { color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; margin-top: -16px; }
         .mode-card {
-            width: 100%;
-            background: #ffc832;
-            border: none;
-            border-radius: 14px; 
-            padding: 18px 24px;
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            gap: 12px;
-            cursor: pointer; 
-            transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
-            -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 4px 20px rgba(255, 200, 50, 0.25);
+            width: 100%; max-width: 360px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 16px; padding: 20px 24px;
+            display: flex; align-items: center; gap: 16px;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
         }
-        
-        .mode-card:active {
-            transform: scale(0.98);
-            background: #e6b32c;
-        }
+        .mode-card.highlight { background: rgba(79,142,247,0.2); border-color: rgba(79,142,247,0.6); }
+        .mode-card .icon { font-size: 32px; flex-shrink: 0; }
+        .mode-card h2 { color: white; font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+        .mode-card span { color: rgba(255,255,255,0.5); font-size: 13px; }
 
-        .mode-card .icon { 
-            font-size: 22px; 
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
-        }
-
-        .mode-card h2 { 
-            color: #0f0f11; 
-            font-size: 16px; 
-            font-weight: 700; 
-        }
-
-        .footer-note {
-            margin-top: 40px;
-            font-size: 12px;
-            color: rgba(255,255,255,0.35);
-        }
-
-        /* ── Interface AR ── */
         #ar-container { position: fixed; inset: 0; display: none; }
 
         #msg {
@@ -119,7 +46,6 @@
             z-index: 99999; pointer-events: none; text-align: center;
             max-width: 90%; display: none;
         }
-        
         #btn-back {
             position: fixed; top: 16px; left: 16px;
             background: rgba(0,0,0,0.6); color: white;
@@ -127,8 +53,30 @@
             padding: 10px 16px; border-radius: 10px;
             font-size: 14px; cursor: pointer; z-index: 99999;
             display: none; -webkit-tap-highlight-color: transparent;
-            backdrop-filter: blur(4px);
         }
+        
+        #controls {
+            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+            display: none; gap: 12px; z-index: 99999;
+        }
+        .btn {
+            background: rgba(0,0,0,0.6); color: rgba(255,255,255,0.7);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 16px; border-radius: 20px;
+            font-weight: 600; font-size: 13px; cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn.active { background: rgba(79,142,247,0.85); border-color: transparent; color: white; }
+
+        #tap-hint {
+            position: fixed; bottom: 130px; left: 50%; transform: translateX(-50%);
+            background: rgba(255,255,255,0.15); color: white;
+            padding: 10px 20px; border-radius: 20px; font-size: 13px;
+            z-index: 99999; display: none; text-align: center;
+            border: 1px solid rgba(255,255,255,0.3);
+            animation: pulse-hint 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-hint { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 
         /* ── Barre de navigation style Sketchfab ── */
         #carousel-navigation-bar {
@@ -180,9 +128,17 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding-bottom: 8px;
         }
-        #annotation-card .ac-title { color: #ffffff; font-size: 16px; font-weight: 700; }
-        #annotation-card .ac-close { color: rgba(255,255,255,0.4); font-size: 18px; cursor: pointer; padding: 2px 6px; }
-        #annotation-card .ac-body { color: rgba(255,255,255,0.85); font-size: 13.5px; line-height: 1.5; }
+        #annotation-card .ac-title {
+            color: #ffffff; font-size: 16px; font-weight: 700;
+        }
+        #annotation-card .ac-close {
+            color: rgba(255,255,255,0.4); font-size: 18px;
+            cursor: pointer; padding: 2px 6px;
+        }
+        #annotation-card .ac-body {
+            color: rgba(255,255,255,0.85);
+            font-size: 13.5px; line-height: 1.5;
+        }
         #annotation-card .ac-body strong { color: #ffc832; font-weight: 500; }
         #annotation-card .ac-tag {
             display: inline-block; margin-top: 12px;
@@ -196,25 +152,28 @@
 <body>
 
     <div id="selection-screen">
-        <div class="hero-container">
-            <span class="app-badge">Réalité Augmentée</span>
-            <h1>🏛️ Patrimoine AR</h1>
-            <p class="description-text">
-                Bienvenue dans l'expérience interactive du Musée en plein air. Pour découvrir la statue numérique du <strong>Pâtre</strong> en taille réelle et explorer ses secrets d'histoire, autorisez l'accès à votre caméra puis scannez le panneau ou l'image cible qui lui est associée.
-            </p>
-            
-            <button class="mode-card" id="pick-scan">
-                <span class="icon">📷</span>
-                <h2>Lancer la numérisation</h2>
-            </button>
-            
-            <p class="footer-note">Optimisé pour smartphone · Placez-vous face à la cible</p>
+        <h1>🏛️ Patrimoine AR</h1>
+        <p>Choisissez votre mode de visualisation</p>
+        <div class="mode-card" id="pick-scan">
+            <span class="icon">📷</span>
+            <div><h2>Mode Scan</h2><span>Détecte automatiquement l'image cible</span></div>
+        </div>
+        <div class="mode-card highlight" id="pick-info">
+            <span class="icon">📍</span>
+            <div><h2>Informations</h2><span>Où nous trouver & historique du lieu</span></div>
         </div>
     </div>
 
     <div id="ar-container"></div>
     <div id="msg">Initialisation...</div>
-    <button id="btn-back">← Quitter</button>
+    <button id="btn-back">← Retour</button>
+    
+    <div id="controls">
+        <button id="btn-scan" class="btn">📷 Scan</button>
+        <button id="btn-info" class="btn">📍 Infos</button>
+    </div>
+    
+    <div id="tap-hint">👆 Touchez l'écran pour afficher la statue en mode libre</div>
 
     <div id="carousel-navigation-bar">
         <button class="nav-arrow" id="nav-prev">◂</button>
@@ -237,6 +196,7 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
+        // Données réelles de la statue
         const DATA_INFOS = [
             {
                 btnLabel: '1. Le Pâtre',
@@ -273,18 +233,24 @@
         let currentIndex = 0;
         
         const selectionScreen = document.getElementById('selection-screen');
-        const arContainer   = document.getElementById('ar-container');
-        const msgEl         = document.getElementById('msg');
-        const btnBack       = document.getElementById('btn-back');
-        const annotCard     = document.getElementById('annotation-card');
-        const carouselBar   = document.getElementById('carousel-navigation-bar');
-        const carouselTitle = document.getElementById('carousel-title');
+        const arContainer     = document.getElementById('ar-container');
+        const msgEl           = document.getElementById('msg');
+        const btnBack         = document.getElementById('btn-back');
+        const controls        = document.getElementById('controls');
+        const btnScan         = document.getElementById('btn-scan');
+        const btnInfo         = document.getElementById('btn-info'); // Changé btn-touch en btn-info
+        const tapHint         = document.getElementById('tap-hint');
+        const annotCard       = document.getElementById('annotation-card');
+        const carouselBar     = document.getElementById('carousel-navigation-bar');
+        const carouselTitle   = document.getElementById('carousel-title');
 
-        let statueModel  = null;
+        let currentMode   = null;
+        let statueModel   = null;
         let mindarTarget = null;
         let camera       = null;
         let renderer     = null;
         let anchor       = null;
+        let manualGroup  = null;
         let arStarted    = false;
 
         const showMsg = t => { msgEl.textContent = t; };
@@ -322,38 +288,41 @@
         });
 
         function initAR() {
-            if (mindarTarget) return; // Évite les réinitialisations multiples
-
             mindarTarget = new MindARThree({
                 container: arContainer,
                 imageTargetSrc: './targets.mind',
                 uiScanning: 'no',
             });
 
-            renderer = mindarTarget.renderer;
-            camera   = mindarTarget.camera;
-            const scene = mindarTarget.scene;
+            const result = mindarTarget;
+            renderer = result.renderer;
+            camera   = result.camera;
+            const scene = result.scene;
 
             renderer.outputColorSpace = THREE.SRGBColorSpace;
             scene.add(new THREE.AmbientLight(0xffffff, 1.5));
-            
             const dir = new THREE.DirectionalLight(0xffffff, 1.0);
             dir.position.set(2, 4, 5); scene.add(dir);
             const dir2 = new THREE.DirectionalLight(0xffffff, 0.5);
             dir2.position.set(-2, -2, -3); scene.add(dir2);
 
-            anchor = mindarTarget.addAnchor(0);
+            anchor      = mindarTarget.addAnchor(0);
+            manualGroup = new THREE.Group();
+            scene.add(manualGroup);
 
             anchor.onTargetFound = () => {
-                showMsg('✅ Cible trouvée');
-                carouselBar.style.display = 'flex';
-                updateInfoDisplay();
+                if (currentMode === 'scan') {
+                    showMsg('✅ Cible trouvée');
+                    carouselBar.style.display = 'flex';
+                    updateInfoDisplay();
+                }
             };
-            
             anchor.onTargetLost = () => {
-                closeInfoCard();
-                carouselBar.style.display = 'none';
-                showMsg('🔍 Cherche la cible...');
+                if (currentMode === 'scan') {
+                    closeInfoCard();
+                    carouselBar.style.display = 'none';
+                    showMsg('🔍 Cherche la cible...');
+                }
             };
 
             const draco = new DRACOLoader();
@@ -381,16 +350,36 @@
                 wrapper.rotation.z =  Math.PI;
 
                 statueModel = wrapper;
-                anchor.group.add(statueModel);
-                
-                if (arStarted) showMsg('🔍 Visez votre image cible');
+
+                if (currentMode === 'scan') {
+                    anchor.group.add(statueModel);
+                    showMsg('🔍 Visez votre image cible');
+                } else {
+                    manualGroup.add(statueModel);
+                    statueModel.visible = false;
+                    tapHint.style.display = 'block';
+                }
 
             }, undefined, () => showMsg('❌ Erreur GLB'));
 
-            arContainer.addEventListener('click', () => {
+            arContainer.addEventListener('click', (e) => {
                 if (annotCard.style.display === 'block') {
-                    closeInfoCard();
+                    closeInfoCard(); return;
                 }
+                if (currentMode !== 'info' || !statueModel) return; // Mode 'touch' devient 'info'
+
+                const camDir = new THREE.Vector3(0, 0, -1);
+                camDir.applyQuaternion(camera.quaternion);
+                const pos = camera.position.clone().addScaledVector(camDir, 2);
+                manualGroup.position.copy(pos);
+                const lookTarget = new THREE.Vector3(camera.position.x, manualGroup.position.y, camera.position.z);
+                manualGroup.lookAt(lookTarget);
+
+                statueModel.visible = true;
+                tapHint.style.display = 'none';
+                carouselBar.style.display = 'flex';
+                updateInfoDisplay();
+                showMsg('');
             });
 
             renderer.setAnimationLoop(() => {
@@ -398,11 +387,14 @@
             });
         }
 
-        async function launchAR() {
+        async function launchAR(mode) {
             selectionScreen.style.display = 'none';
             arContainer.style.display     = 'block';
             msgEl.style.display           = 'block';
             btnBack.style.display         = 'block';
+            controls.style.display        = 'flex';
+            currentMode = mode;
+            updateBtns();
 
             if (!arStarted) {
                 showMsg('📷 Démarrage caméra...');
@@ -411,13 +403,39 @@
                     await mindarTarget.start();
                     document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
                     arStarted = true;
-                    showMsg('🔍 Visez votre image cible');
+                    if (mode === 'scan') showMsg('🔍 Visez votre image cible');
+                    else { showMsg(''); tapHint.style.display = 'block'; }
                 } catch {
                     showMsg('❌ Caméra bloquée');
                 }
-            } else {
-                showMsg('🔍 Visez votre image cible');
             }
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            updateBtns();
+            closeInfoCard();
+            carouselBar.style.display = 'none';
+            if (!statueModel) return;
+
+            if (mode === 'scan') {
+                manualGroup.remove(statueModel);
+                anchor.group.add(statueModel);
+                statueModel.visible = true;
+                tapHint.style.display = 'none';
+                showMsg('🔍 Visez votre image cible');
+            } else {
+                anchor.group.remove(statueModel);
+                manualGroup.add(statueModel);
+                statueModel.visible = false;
+                tapHint.style.display = 'block';
+                showMsg('');
+            }
+        }
+
+        function updateBtns() {
+            btnScan.classList.toggle('active', currentMode === 'scan');
+            btnInfo.classList.toggle('active', currentMode === 'info'); // 'touch' devient 'info'
         }
 
         btnBack.addEventListener('click', () => {
@@ -425,11 +443,16 @@
             arContainer.style.display     = 'none';
             msgEl.style.display           = 'none';
             btnBack.style.display         = 'none';
+            controls.style.display        = 'none';
+            tapHint.style.display         = 'none';
             carouselBar.style.display     = 'none';
             closeInfoCard();
         });
 
-        document.getElementById('pick-scan').addEventListener('click', launchAR);
+        document.getElementById('pick-scan').addEventListener('click',  () => launchAR('scan'));
+        document.getElementById('pick-info').addEventListener('click', () => launchAR('info')); // 'pick-touch' devient 'pick-info'
+        btnScan.addEventListener('click',  () => setMode('scan'));
+        btnInfo.addEventListener('click', () => setMode('info')); // 'btnTouch' devient 'btnInfo'
     </script>
 </body>
 </html>
