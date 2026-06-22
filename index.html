@@ -297,7 +297,7 @@
 
             if (currentMode === 'scan') {
                 // Formule mathématique MindAR pour lier l'échelle à la taille de l'image cible (0.2m = feuille A4)
-                const targetWidthMeters = 0.2;
+                const targetWidthMeters = 3.0;
                 const scaleFactor = (statueRealHeight / maxDim) * targetWidthMeters;
                 statueModel.scale.setScalar(scaleFactor);
 
