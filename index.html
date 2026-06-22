@@ -80,7 +80,7 @@
         /* ── Points lumineux AR ── */
         .ar-dot {
             position: fixed;
-            width: 20px; height: 20px;
+            width: 24px; height: 24px;
             transform: translate(-50%, -50%);
             cursor: pointer;
             z-index: 9999;
@@ -155,7 +155,6 @@
 </head>
 <body>
 
-    <!-- Sélection -->
     <div id="selection-screen">
         <h1>🏛️ Patrimoine AR</h1>
         <p>Choisissez votre mode de visualisation</p>
@@ -169,7 +168,6 @@
         </div>
     </div>
 
-    <!-- AR -->
     <div id="ar-container"></div>
     <div id="msg">Initialisation...</div>
     <button id="btn-back">← Retour</button>
@@ -179,11 +177,9 @@
     </div>
     <div id="tap-hint">👆 Touchez l'écran pour poser la statue</div>
 
-    <!-- 2 points AR -->
-   <div class="ar-dot" id="dot-0"><div class="ring-outer"></div><div class="ring"></div></div>
+    <div class="ar-dot" id="dot-0"><div class="ring-outer"></div><div class="ring"></div></div>
     <div class="ar-dot" id="dot-1"><div class="ring-outer"></div><div class="ring"></div></div>
     
-    <!-- Fiche annotation -->
     <div id="annotation-card">
         <div class="ac-header">
             <span class="ac-title" id="ac-title">Titre</span>
@@ -200,29 +196,28 @@
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
         // ── Données des annotations ────────────────────────────────
-        // Positions en coordonnées locales relatives à la statue (après centrage)
-        // x = gauche/droite, y = bas/haut, z = avant/arrière
-        // Ajustez ces valeurs selon votre modèle réel
-       // ── Données annotations (offsets calculés après chargement) ──
+        // MODIFICATION : Ajout d'un xFactor pour gérer le décalage à droite de la statue (0.6 = à droite)
         const ANNOTATIONS = [
             {
                 id: 0,
                 title: 'La tête',
                 body: 'Décrivez ici les détails de la tête de la statue : style, époque, matériau, symbolisme...',
                 tag: 'Sculpture · XIXe s.',
-                // fraction verticale : 1.0 = sommet exact, 0.85 = légèrement sous le sommet
-                yFactor: 0.9,
-                zFactor: 0.3   // légèrement devant
+                xFactor: 0.6,   // Décalé sur la droite
+                yFactor: 0.6,   // Position haute
+                zFactor: 0.0    
             },
             {
                 id: 1,
                 title: 'Le socle',
                 body: 'Le socle : inscription, date, matériau, contexte historique de l\'érection...',
                 tag: 'Histoire · Épigraphie',
-                yFactor: -0.9, // bas de la statue
-                zFactor: 0.3
+                xFactor: 0.6,   // Également décalé sur la droite
+                yFactor: -0.8,  // Position basse
+                zFactor: 0.0
             },
         ];
+        
         // ── UI refs ────────────────────────────────────────────────
         const selectionScreen = document.getElementById('selection-screen');
         const arContainer     = document.getElementById('ar-container');
@@ -235,8 +230,8 @@
         const annotCard       = document.getElementById('annotation-card');
         const dots            = ANNOTATIONS.map(a => document.getElementById('dot-' + a.id));
 
-        let currentMode  = null;
-        let statueModel  = null;
+        let currentMode   = null;
+        let statueModel   = null;
         let mindarTarget = null;
         let camera       = null;
         let renderer     = null;
@@ -245,7 +240,6 @@
         let arStarted    = false;
         let statueVisible = false;
 
-        // Points 3D dans l'espace monde (mis à jour chaque frame)
         const worldPoints = ANNOTATIONS.map(() => new THREE.Vector3());
 
         const showMsg = t => { msgEl.textContent = t; };
@@ -256,7 +250,7 @@
             return {
                 x: (v.x * 0.5 + 0.5) * window.innerWidth,
                 y: (-v.y * 0.5 + 0.5) * window.innerHeight,
-                visible: v.z < 1   // devant la caméra
+                visible: v.z < 1
             };
         }
 
@@ -267,7 +261,6 @@
             }
 
             ANNOTATIONS.forEach((ann, i) => {
-                // Calculer la position monde du point d'annotation
                 const localPos = ann.offset.clone();
                 statueModel.localToWorld(localPos);
                 worldPoints[i].copy(localPos);
@@ -287,7 +280,6 @@
             });
         }
 
-        // ── Fiche annotation ───────────────────────────────────────
         function showAnnotation(ann) {
             document.getElementById('ac-title').textContent = ann.title;
             document.getElementById('ac-body').textContent  = ann.body;
@@ -343,64 +335,58 @@
                 }
             };
 
-            // Chargement GLB
             const draco = new DRACOLoader();
             draco.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
             const loader = new GLTFLoader();
             loader.setDRACOLoader(draco);
 
             loader.load('./Statue25.glb', (gltf) => {
-            const model = gltf.scene;
+                const model = gltf.scene;
 
-            // Centrage
-            const box    = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size   = box.getSize(new THREE.Vector3());
-            model.position.sub(center);
+                const box    = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size   = box.getSize(new THREE.Vector3());
+                model.position.sub(center);
 
-            const wrapper = new THREE.Group();
-            wrapper.add(model);
+                const wrapper = new THREE.Group();
+                wrapper.add(model);
 
-            // Scale
-            const targetWidthMeters = 0.2;
-            const statueRealHeight  = 3.5;
-            const scaleFactor = (statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters;
-            wrapper.scale.setScalar(scaleFactor);
+                const targetWidthMeters = 0.2;
+                const statueRealHeight  = 3.5;
+                const scaleFactor = (statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters;
+                wrapper.scale.setScalar(scaleFactor);
 
-            // Rotations corrigées
-            wrapper.rotation.x = -Math.PI / 2;
-            wrapper.rotation.y =  Math.PI;
-            wrapper.rotation.z =  Math.PI;
+                wrapper.rotation.x = -Math.PI / 2;
+                wrapper.rotation.y =  Math.PI;
+                wrapper.rotation.z =  Math.PI;
 
-            statueModel = wrapper;
+                statueModel = wrapper;
 
-            // ── Calcul des offsets réels après scale ──────────────────
-            // La bounding box après scale en unités monde
-            const halfH = (size.y * scaleFactor) / 2;  // demi-hauteur réelle
-            const halfZ = (size.z * scaleFactor) / 2;  // demi-profondeur réelle
+                // ── CALCUL DES OFFSETS APPLIQUÉS SELON VOS FACTEURS ──
+                const halfH = (size.y * scaleFactor) / 2;  
+                const halfW = (size.x * scaleFactor) / 2;  // Prise en compte de la largeur réelle
+                const halfZ = (size.z * scaleFactor) / 2;  
 
-              ANNOTATIONS.forEach(ann => {
-                ann.offset = new THREE.Vector3(
-                    0,
-                    halfH * ann.yFactor,   // y = haut/bas proportionnel
-                    halfZ * ann.zFactor    // z = légèrement devant
-                );
-            });
+                ANNOTATIONS.forEach(ann => {
+                    ann.offset = new THREE.Vector3(
+                        halfW * ann.xFactor,  // Axe X : décalage latéral proportionnel
+                        halfH * ann.yFactor,  // Axe Y : hauteur proportionnelle
+                        halfZ * ann.zFactor   // Axe Z : profondeur
+                    );
+                });
 
-            if (currentMode === 'scan') {
-                anchor.group.add(statueModel);
-                showMsg('🔍 Visez votre image cible');
-            } else {
-                manualGroup.add(statueModel);
-                statueModel.visible = false;
-                tapHint.style.display = 'block';
-            }
+                if (currentMode === 'scan') {
+                    anchor.group.add(statueModel);
+                    showMsg('🔍 Visez votre image cible');
+                } else {
+                    manualGroup.add(statueModel);
+                    statueModel.visible = false;
+                    tapHint.style.display = 'block';
+                }
 
-        }, undefined, () => showMsg('❌ Erreur GLB'));
+            }, undefined, () => showMsg('❌ Erreur GLB'));
 
-            // Tap mode tactile
             arContainer.addEventListener('click', (e) => {
-                // Fermer la fiche si ouverte
                 if (annotCard.style.display === 'block') {
                     closeAnnotation(); return;
                 }
@@ -419,14 +405,12 @@
                 showMsg('✅ Touchez un point lumineux pour en savoir plus');
             });
 
-            // Boucle de rendu — mise à jour des points chaque frame
             renderer.setAnimationLoop(() => {
                 renderer.render(scene, camera);
                 updateDots();
             });
         }
 
-        // ── Lancer l'AR ───────────────────────────────────────────
         async function launchAR(mode) {
             selectionScreen.style.display = 'none';
             arContainer.style.display     = 'block';
@@ -441,8 +425,7 @@
                 initAR();
                 try {
                     await mindarTarget.start();
-                    document.querySelectorAll('.mindar-ui-overlay')
-                        .forEach(el => el.style.display = 'none');
+                    document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
                     arStarted = true;
                     if (mode === 'scan') showMsg('🔍 Visez votre image cible');
                     else { showMsg(''); tapHint.style.display = 'block'; }
@@ -452,7 +435,6 @@
             }
         }
 
-        // ── Switch mode ───────────────────────────────────────────
         function setMode(mode) {
             currentMode = mode;
             updateBtns();
