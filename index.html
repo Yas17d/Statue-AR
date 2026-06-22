@@ -35,7 +35,6 @@
             transition: background 0.2s, border-color 0.2s;
         }
         .mode-card.highlight { background: rgba(79,142,247,0.15); border-color: rgba(79,142,247,0.5); }
-        .mode-card .icon { font-size: 30px; flex-shrink: 0; }
         .mode-card h2 { color: white; font-size: 16px; font-weight: 600; margin: 0 0 4px; }
         .mode-card span { color: rgba(255,255,255,0.5); font-size: 13px; line-height: 1.3; }
  
@@ -103,7 +102,7 @@
         /* ── Fiche annotation ── */
         #annotation-card {
             position: fixed; 
-            bottom: 85px; /* Positionnée juste au-dessus de la barre de navigation */
+            bottom: 85px; 
             top: auto; 
             left: 50%;
             transform: translateX(-50%);
@@ -111,8 +110,8 @@
             border: 1px solid rgba(255, 200, 50, 0.4);
             border-radius: 12px; padding: 18px;
             width: 90%; max-width: 350px;
-            height: fit-content; /* S'adapte à la taille exacte du texte */
-            max-height: 65vh; /* Limite la hauteur si le texte est très long */
+            height: fit-content; 
+            max-height: 65vh; 
             z-index: 99999; display: none;
             backdrop-filter: blur(12px);
             box-shadow: 0 12px 30px rgba(0,0,0,0.6);
@@ -154,21 +153,18 @@
 <body>
  
     <div id="selection-screen">
-        <h1>🏛️ Patrimoine AR</h1>
+        <h1>Patrimoine AR</h1>
         <p>Musée en plein air du Sart Tilman</p>
         
         <div class="mode-card highlight" id="pick-info">
-            <span class="icon">📍</span>
             <div><h2>Informations</h2><span>Guide d'utilisation de l'application</span></div>
         </div>
  
         <div class="mode-card" id="pick-perspectives">
-            <span class="icon">✨</span>
             <div><h2>Perspectives</h2><span>Accessibilité et démocratisation de l'art</span></div>
         </div>
  
         <div class="mode-card" id="pick-scan">
-            <span class="icon">📷</span>
             <div><h2>Mode Scan (AR)</h2><span>Détecte l'œuvre automatiquement via votre caméra</span></div>
         </div>
     </div>
@@ -178,9 +174,9 @@
     <button id="btn-back">← Retour</button>
     
     <div id="controls">
-        <button id="btn-info" class="btn">📍 Infos</button>
-        <button id="btn-perspectives" class="btn">✨ Perspectives</button>
-        <button id="btn-scan" class="btn">📷 Scan AR</button>
+        <button id="btn-info" class="btn">Infos</button>
+        <button id="btn-perspectives" class="btn">Perspectives</button>
+        <button id="btn-scan" class="btn">Scan AR</button>
     </div>
  
     <div id="carousel-navigation-bar">
@@ -210,7 +206,7 @@
             info: [
                 {
                     btnLabel: '1. Guide de l\'App',
-                    title: '📱 Mode d\'emploi de l\'application',
+                    title: 'Mode d\'emploi de l\'application',
                     body: 'Bienvenue ! Cette application vous permet de découvrir les œuvres d\'art du Sart Tilman en réalité augmentée.<br><br><strong>Comment utiliser le mode Scan AR ?</strong><br>1. Cliquez sur le bouton "Mode Scan".<br>2. Autorisez l\'accès à votre appareil photo.<br>3. Dirigez votre smartphone vers <strong>la statue ou une photo de celle-ci</strong> pour faire apparaître le modèle 3D superposé.',
                     tag: 'Aide · Guide'
                 }
@@ -218,19 +214,19 @@
             perspectives: [
                 {
                     btnLabel: '1. Un art pour tous',
-                    title: '🌍 Démocratiser l\'accès aux œuvres',
+                    title: 'Démocratiser l\'accès aux œuvres',
                     body: 'L\'objectif principal de cette application est de rendre les œuvres existantes du Sart Tilman <strong>accessibles à absolument tout le monde</strong>. La réalité augmentée permet de s\'affranchir des distances géographiques, offrant la possibilité d\'admirer ces chefs-d\'œuvre depuis chez soi, à l\'école ou de n\'importe où dans le monde.',
                     tag: 'Accessibilité · Inclusion'
                 },
                 {
                     btnLabel: '2. Inclusion & Mobilité',
-                    title: '♿ Dépasser les obstacles physiques',
+                    title: 'Dépasser les obstacles physiques',
                     body: 'Le Musée en plein air s\'étend sur un vaste domaine naturel boisé, ce qui peut représenter un défi pour les personnes à mobilité réduite ou en situation de handicap. Grâce à ce dispositif, <strong>les œuvres viennent directement à l\'utilisateur</strong>, garantissant une égalité d\'accès à la culture sans se soucier des contraintes de terrain.',
                     tag: 'Égalité · Mobilité'
                 },
                 {
                     btnLabel: '3. Médiation enrichie',
-                    title: '📖 Comprendre et manipuler',
+                    title: 'Comprendre et manipuler',
                     body: 'Au-delà de l\'aspect purement visuel, cette technologie permet de superposer des explications claires et interactives sur les œuvres de la collection liégeoise. Cette approche s\'adresse à tous les publics (familles, curieux, étudiants), rendant l\'art contemporain beaucoup plus accessible et compréhensible.',
                     tag: 'Pédagogie · Démocratisation'
                 }
@@ -312,10 +308,8 @@
             annotCard.style.display = 'none';
         }
 
-        // Gestion de la croix pour fermer
         document.getElementById('ac-close').addEventListener('click', closeInfoCard);
 
-        // Gestion du toggle sur la barre du carrousel
         carouselBar.addEventListener('click', (e) => {
             if (e.target.classList.contains('nav-arrow')) return;
 
@@ -333,7 +327,7 @@
             const len = DATA_INFOS[currentMode].length;
             currentIndex = (currentIndex - 1 + len) % len;
             updateInfoDisplay();
-            if (currentMode === 'scan') annotCard.style.display = 'flex'; // Force l'affichage si on navigue
+            if (currentMode === 'scan') annotCard.style.display = 'flex'; 
         });
  
         document.getElementById('nav-next').addEventListener('click', (e) => {
@@ -341,7 +335,7 @@
             const len = DATA_INFOS[currentMode].length;
             currentIndex = (currentIndex + 1) % len;
             updateInfoDisplay();
-            if (currentMode === 'scan') annotCard.style.display = 'flex'; // Force l'affichage si on navigue
+            if (currentMode === 'scan') annotCard.style.display = 'flex'; 
         });
  
         function initAR() {
@@ -364,7 +358,7 @@
  
             anchor.onTargetFound = () => {
                 if (currentMode === 'scan') {
-                    showMsg('✅ Cible trouvée');
+                    showMsg('Cible trouvée');
                     carouselBar.style.display = 'flex';
                     annotCard.style.display = 'none'; 
                     updateInfoDisplay();
@@ -374,7 +368,7 @@
                 if (currentMode === 'scan') {
                     annotCard.style.display = 'none';
                     carouselBar.style.display = 'none';
-                    showMsg('🔍 Cherche la cible...');
+                    showMsg('Cherche la cible...');
                 }
             };
  
@@ -405,7 +399,7 @@
                 statueModel = wrapper;
                 anchor.group.add(statueModel);
  
-            }, undefined, () => showMsg('❌ Erreur GLB'));
+            }, undefined, () => showMsg('Erreur GLB'));
  
             renderer.setAnimationLoop(() => {
                 if (currentMode === 'scan' && arStarted) renderer.render(scene, camera);
@@ -428,18 +422,18 @@
                 annotCard.style.display   = 'none';
                 
                 if (!arStarted) {
-                    showMsg('📷 Démarrage caméra...');
+                    showMsg('Démarrage caméra...');
                     initAR();
                     try {
                         await mindarTarget.start();
                         document.querySelectorAll('.mindar-ui-overlay').forEach(el => el.style.display = 'none');
                         arStarted = true;
-                        showMsg('🔍 Visez la statue ou une photo');
+                        showMsg('Visez la statue ou une photo');
                     } catch {
-                        showMsg('❌ Caméra bloquée');
+                        showMsg('Caméra bloquée');
                     }
                 } else {
-                    showMsg('🔍 Visez la statue ou une photo');
+                    showMsg('Visez la statue ou une photo');
                 }
             } else {
                 if (arStarted && mindarTarget) {
@@ -495,4 +489,5 @@
     </script>
 </body>
 </html>
+
 
