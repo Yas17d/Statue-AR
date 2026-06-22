@@ -198,14 +198,16 @@
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
         // ── Données des annotations ────────────────────────────────
-        // MODIFICATION : Les offsets s'expriment désormais à l'échelle d'ORIGINE de votre fichier GLB (souvent en mètres) avant redimensionnement.
-        // Si votre statue fait par exemple 3.5m de haut dans son fichier d'origine :
-        // La tête sera vers y = 1.7, le socle vers y = -1.7
+        // MODIFICATION STRATÉGIQUE : Les offsets correspondent désormais au repère final visuel de Three.js (en mètres).
+        // Le centre (0,0,0) est l'entrejambe/le milieu exact de la statue.
+        // Y = Hauteur (Positif = monte vers la tête, Négatif = descend vers le socle)
+        // X = Gauche/Droite
+        // Z = Avant/Arrière
         const ANNOTATIONS = [
             {
                 id: 0,
                 label: 'Tête',
-                offset: new THREE.Vector3(0, 1.6, 0.1), 
+                offset: new THREE.Vector3(0, 1.6, 0.0), // Monte de 1.6m au dessus du centre
                 title: 'La tête',
                 body: 'Décrivez ici les détails de la tête de la statue : style, époque, matériau, symbolisme...',
                 tag: 'Sculpture · XIXe s.'
@@ -213,7 +215,7 @@
             {
                 id: 1,
                 label: 'Torse',
-                offset: new THREE.Vector3(0, 0.5, 0.3),
+                offset: new THREE.Vector3(0, 0.5, 0.2), // Légèrement plus haut et en avant
                 title: 'Le torse',
                 body: 'Description du torse : posture, vêtements, décoration, technique de taille...',
                 tag: 'Anatomie · Drapé'
@@ -221,7 +223,7 @@
             {
                 id: 2,
                 label: 'Bras',
-                offset: new THREE.Vector3(0.6, 0.3, 0.2),
+                offset: new THREE.Vector3(0.5, 0.4, 0.1), // Décalé sur le côté droit
                 title: 'Le bras',
                 body: 'Le bras et la main : geste symbolique, attribut tenu, détails de la sculpture...',
                 tag: 'Geste · Symbolisme'
@@ -229,7 +231,7 @@
             {
                 id: 3,
                 label: 'Socle',
-                offset: new THREE.Vector3(0, -1.6, 0.1),
+                offset: new THREE.Vector3(0, -1.6, 0.0), // Descend de 1.6m sous le centre
                 title: 'Le socle',
                 body: 'Le socle : inscription, date, matériau, contexte historique de l\'érection...',
                 tag: 'Histoire · Épigraphie'
@@ -249,8 +251,7 @@
         const dots            = ANNOTATIONS.map(a => document.getElementById('dot-' + a.id));
 
         let currentMode   = null;
-        let statueModel   = null; // Référence vers le wrapper
-        let innerModel    = null; // MODIFICATION : Référence directe vers la géométrie de la statue (scene GLTF)
+        let statueModel   = null; // Notre wrapper global
         let mindarTarget = null;
         let camera       = null;
         let renderer     = null;
@@ -259,7 +260,9 @@
         let arStarted    = false;
         let statueVisible = false;
 
-        const worldPoints = ANNOTATIONS.map(() => new THREE.Vector3());
+        // Tableau qui contiendra nos petits objets 3D repères cachés
+        const markerObjects = [];
+        const tempWorldPos = new THREE.Vector3();
 
         const showMsg = t => { msgEl.textContent = t; };
 
@@ -274,21 +277,19 @@
         }
 
         function updateDots() {
-            if (!innerModel || !statueVisible) {
+            if (!statueModel || !statueVisible || markerObjects.length === 0) {
                 dots.forEach(d => d.style.display = 'none');
                 return;
             }
 
-            // On force la mise à jour globale du modèle interne
-            innerModel.updateMatrixWorld(true);
-
             ANNOTATIONS.forEach((ann, i) => {
-                const localPos = ann.offset.clone();
-                // MODIFICATION : On extrait la position depuis l'espace de la géométrie pure, avant rotations de correction
-                innerModel.localToWorld(localPos);
-                worldPoints[i].copy(localPos);
+                const marker = markerObjects[i];
+                if (!marker) return;
 
-                const screen = projectToScreen(worldPoints[i]);
+                // On extrait la position absolue monde du repère 3D directement
+                marker.getWorldPosition(tempWorldPos);
+
+                const screen = projectToScreen(tempWorldPos);
                 const dot = dots[i];
 
                 if (screen.visible &&
@@ -368,27 +369,34 @@
             loader.load('./Statue25.glb', (gltf) => {
                 const model = gltf.scene;
                 
-                // Garder une référence vers la géométrie brute non-pivotée pour fixer les points
-                innerModel = model;
-
                 const box    = new THREE.Box3().setFromObject(model);
                 const center = box.getCenter(new THREE.Vector3());
                 const size   = box.getSize(new THREE.Vector3());
                 
-                // Centrage
+                // 1. Centrage parfait de la géométrie au milieu de son conteneur
                 model.position.sub(center);
 
                 const wrapper = new THREE.Group();
                 wrapper.add(model);
 
+                // 2. Application de l'échelle absolue basée sur la hauteur réelle (3.5m)
                 const targetWidthMeters = 0.2;
                 const statueRealHeight  = 3.5;
                 wrapper.scale.setScalar((statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters);
 
-                // Vos rotations magiques appliquées uniquement au wrapper externe
+                // 3. Rotations de correction appliquées sur le wrapper
                 wrapper.rotation.x = -Math.PI / 2;
                 wrapper.rotation.y = Math.PI;
                 wrapper.rotation.z = Math.PI;
+
+                // 4. ANCRAGE DES REPÈRES : On attache les repères directement sur le wrapper final.
+                // Comme ils sont au même niveau géométrique, l'échelle et les rotations fonctionnent à 100%.
+                ANNOTATIONS.forEach((ann) => {
+                    const marker = new THREE.Object3D();
+                    marker.position.copy(ann.offset);
+                    wrapper.add(marker); // Attaché à la statue !
+                    markerObjects.push(marker);
+                });
 
                 statueModel = wrapper;
 
