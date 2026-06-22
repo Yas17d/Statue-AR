@@ -174,12 +174,13 @@
                 const maxDim = Math.max(size.x, size.y, size.z);
                 wrapper.scale.setScalar(0.8 / maxDim);
 
-                // ── CORRECTION DU ROULIS (VUE DU DESSUS) ──
-                // On redresse la statue en la basculant de 90° vers l'arrière
-                wrapper.rotation.x = -Math.PI / 2; 
-                // On applique une rotation de 180° (Math.PI) pour compenser l'effet de dos
-                wrapper.rotation.y = Math.PI; 
-                wrapper.rotation.z = 0;
+                // ── NOUVELLE ORIENTATION : FORCE LE REDRESSEMENT DEPUIS L'AXE LOCAL COUCHÉ ──
+                wrapper.rotation.x = 0;
+                wrapper.rotation.y = 0;
+                // On bascule à 90° sur Z pour remettre le corps vertical si Metashape a inversé le profil/hauteur
+                wrapper.rotation.z = Math.PI / 2; 
+
+                // Si après ça elle est debout mais regarde sur le côté, on ajustera finement avec l'axe Y.
 
                 // Ajuster la hauteur pour caler la base sur la grille
                 wrapper.position.y = size.y * (0.8 / maxDim) * 0.5;
