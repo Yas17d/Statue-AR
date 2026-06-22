@@ -185,7 +185,7 @@
                 // Metashape exporte souvent avec Z=haut → corriger pour Three.js (Y=haut)
                 // Ajustez ces valeurs si la statue est encore penchée
                 // wrapper.rotation.y = Math.PI;    // 180° si elle est dos à vous
-                wrapper.rotation.x = Math.PI / 2;   // +90° corrige tête en bas
+                wrapper.rotation.x = -Math.PI / 2;   // +90° corrige tête en bas
                 wrapper.rotation.y = Math.PI;        // 180° corrige le dos
 
                 // Lever légèrement la statue au-dessus du plan de la cible
