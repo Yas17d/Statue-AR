@@ -196,7 +196,6 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-        // Données réelles de la statue
         const DATA_INFOS = [
             {
                 btnLabel: '1. Le Pâtre',
@@ -238,7 +237,7 @@
         const btnBack         = document.getElementById('btn-back');
         const controls        = document.getElementById('controls');
         const btnScan         = document.getElementById('btn-scan');
-        const btnInfo         = document.getElementById('btn-info'); // Changé btn-touch en btn-info
+        const btnInfo         = document.getElementById('btn-info');
         const tapHint         = document.getElementById('tap-hint');
         const annotCard       = document.getElementById('annotation-card');
         const carouselBar     = document.getElementById('carousel-navigation-bar');
@@ -351,13 +350,15 @@
 
                 statueModel = wrapper;
 
+                // CORRECTION : On gère la visibilité initiale sans forcer l'affichage des fiches d'UI immédiatement
                 if (currentMode === 'scan') {
                     anchor.group.add(statueModel);
                     showMsg('🔍 Visez votre image cible');
-                } else {
+                } else if (currentMode === 'info') {
                     manualGroup.add(statueModel);
                     statueModel.visible = false;
                     tapHint.style.display = 'block';
+                    showMsg('');
                 }
 
             }, undefined, () => showMsg('❌ Erreur GLB'));
@@ -366,7 +367,7 @@
                 if (annotCard.style.display === 'block') {
                     closeInfoCard(); return;
                 }
-                if (currentMode !== 'info' || !statueModel) return; // Mode 'touch' devient 'info'
+                if (currentMode !== 'info' || !statueModel) return;
 
                 const camDir = new THREE.Vector3(0, 0, -1);
                 camDir.applyQuaternion(camera.quaternion);
@@ -408,6 +409,9 @@
                 } catch {
                     showMsg('❌ Caméra bloquée');
                 }
+            } else {
+                // Si l'AR a déjà démarré précédemment, on applique le mode choisi proprement
+                setMode(mode);
             }
         }
 
@@ -435,7 +439,7 @@
 
         function updateBtns() {
             btnScan.classList.toggle('active', currentMode === 'scan');
-            btnInfo.classList.toggle('active', currentMode === 'info'); // 'touch' devient 'info'
+            btnInfo.classList.toggle('active', currentMode === 'info');
         }
 
         btnBack.addEventListener('click', () => {
@@ -450,9 +454,9 @@
         });
 
         document.getElementById('pick-scan').addEventListener('click',  () => launchAR('scan'));
-        document.getElementById('pick-info').addEventListener('click', () => launchAR('info')); // 'pick-touch' devient 'pick-info'
+        document.getElementById('pick-info').addEventListener('click', () => launchAR('info'));
         btnScan.addEventListener('click',  () => setMode('scan'));
-        btnInfo.addEventListener('click', () => setMode('info')); // 'btnTouch' devient 'btnInfo'
+        btnInfo.addEventListener('click', () => setMode('info'));
     </script>
 </body>
 </html>
