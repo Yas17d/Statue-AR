@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Patrimoine AR</title>
+    <title>Musée en plein air du Sart Tilman</title>
     <script type="importmap">
     {
         "imports": {
@@ -22,7 +22,7 @@
             align-items: center; justify-content: center;
             gap: 16px; z-index: 100000; padding: 2rem;
         }
-        #selection-screen h1 { color: white; font-size: 24px; font-weight: 600; text-align: center; margin-bottom: 4px; }
+        #selection-screen h1 { color: white; font-size: 24px; font-weight: 600; text-align: center; margin-bottom: 4px; line-height: 1.2; }
         #selection-screen p  { color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; margin-bottom: 12px; }
         
         .mode-card {
@@ -153,8 +153,8 @@
 <body>
  
     <div id="selection-screen">
-        <h1>Patrimoine AR</h1>
-        <p>Musée en plein air du Sart Tilman</p>
+        <h1>Musée en plein air du Sart Tilman</h1>
+        <p>Visite AR, Scannez et admirez</p>
         
         <div class="mode-card highlight" id="pick-info">
             <div><h2>Informations</h2><span>Guide d'utilisation de l'application</span></div>
@@ -233,40 +233,38 @@
             ],
             scan: [
                 { 
-
-                btnLabel: '1. Le Pâtre',
-                title: 'Le Pâtre (Fiche technique)',
-                body: '<strong>Artiste :</strong> Idel Ianchelevici<br><strong>Année :</strong> 1956<br><strong>Matériaux :</strong> Bronze<br><strong>Dimensions :</strong> Hauteur : 340 cm · Longueur : 93 cm · Largeur : 54,5 cm.',
-                tag: 'Général · Statuaire'
-            },
-            {
-                btnLabel: '2. Origine du projet',
-                title: 'Le projet colonial (1/2)',
-                body: 'Au milieu des années 1950, l’État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa) dédié à l\'explorateur Stanley. Mais une fois sur place, le sculpteur bouleverse le projet : il choisit de créer de monumentales <strong>statues en ronde-bosse</strong>.',
-                tag: 'Histoire · Contexte'
-            },
-            {
-                btnLabel: '3. Un symbole fort',
-                title: 'La dignité célébrée (2/2)',
-                body: 'Ianchelevici sculpte trois piliers de l’économie traditionnelle : <strong>le pâtre, le pêcheur et le chasseur</strong>. Loin des clichés coloniaux de l\'époque, il magnifie l\'homme africain dans une <strong>dignité enfin reconnue</strong>. Preuve de la force du symbole : alors que les statues coloniales ont été déboulonnées à Kinshasa, ces trois œuvres y sont toujours fièrement en place.',
-                tag: 'Histoire · Symbole'
-            },
-            {
-                btnLabel: '4. L\'Artiste',
-                title: 'Idel Ianchelevici (1909-1994)',
-                body: 'Arrivé à Liège en 1928, il décroche le 1er prix de statuaire des Beaux-Arts en 1933. Installé ensuite en région parisienne, sa carrière est jalonnée de chefs-d’œuvre monumentaux acclamés à travers l\'Europe, comme <strong>Le Plongeur</strong> (Liège, 1939) ou <strong>Le Résistant</strong> (Fort de Breendonk, 1947).',
-                tag: 'Biographie · Maître'
-            },
-            {
-                btnLabel: '5. Prix Triennal',
-                title: 'Mise à l\'honneur',
-                body: 'Depuis 1997, le Musée en plein air perpétue la mémoire et le génie du sculpteur en organisant le prestigieux <strong>Prix Triennal Ianchelevici</strong>, créé à l’initiative de l’ASBL « Les Amis de Ianchelevici ».',
-                tag: 'Héritage · Distinction'
-            }
-        ];
+                    btnLabel: '1. Le Pâtre', 
+                    title: 'Le Pâtre (Fiche technique)', 
+                    body: '<strong>Artiste :</strong> Idel Ianchelevici<br><strong>Année :</strong> 1956<br><strong>Matériaux :</strong> Bronze<br><strong>Dimensions :</strong> Hauteur : 340 cm · Longueur : 93 cm · Largeur : 54,5 cm.', 
+                    tag: 'Général · Statuaire' 
+                },
+                { 
+                    btnLabel: '2. Origine du projet', 
+                    title: 'Le projet colonial (1/2)', 
+                    body: 'Au milieu des années 1950, l’État belge commande à Ianchelevici des bas-reliefs pour un monument à Léopoldville (Kinshasa) dédié à l\'explorateur Stanley. Mais une fois sur place, le sculpteur bouleverse le projet : il choisit de créer de monumentales <strong>statues en ronde-bosse</strong>.', 
+                    tag: 'Histoire · Contexte' 
+                },
+                { 
+                    btnLabel: '3. Un symbole fort', 
+                    title: 'La dignité célébrée (2/2)', 
+                    body: 'Ianchelevici sculpte trois piliers de l’économie traditionnelle : <strong>le pâtre, le pêcheur et le chasseur</strong>. Loin des clichés coloniaux de l\'époque, il magnifie l\'homme africain dans une <strong>dignité enfin reconnue</strong>. Preuve de la force du symbole : alors que les statues coloniales ont été déboulonnées à Kinshasa, ces trois œuvres y sont toujours fièrement en place.', 
+                    tag: 'Histoire · Symbole' 
+                },
+                { 
+                    btnLabel: '4. L\'Artiste', 
+                    title: 'Idel Ianchelevici (1909-1994)', 
+                    body: 'Arrivé à Liège en 1928, il décroche le 1er prix de statuaire des Beaux-Arts en 1933. Installé ensuite en région parisienne, sa carrière est jalonnée de chefs-d’œuvre monumentaux acclamés à travers l\'Europe, comme <strong>Le Plongeur</strong> (Liège, 1939) ou <strong>Le Résistant</strong> (Fort de Breendonk, 1947).', 
+                    tag: 'Biographie · Maître' 
+                },
+                { 
+                    btnLabel: '5. Prix Triennal', 
+                    title: 'Mise à l\'honneur', 
+                    body: 'Depuis 1997, le Musée en plein air perpétue la mémoire et le génie du sculpteur en organisant le prestigieux <strong>Prix Triennal Ianchelevici</strong>, créé à l’initiative de l’ASBL « Les Amis de Ianchelevici ».', 
+                    tag: 'Héritage · Distinction' 
+                }
+            ]
+        };
                     
-                  
- 
         let currentIndex = 0;
         let currentMode   = null;
         
