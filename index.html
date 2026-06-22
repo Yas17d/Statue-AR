@@ -344,7 +344,7 @@
                 const wrapper = new THREE.Group();
                 wrapper.add(model);
 
-                const targetWidthMeters = 0.2;
+                const targetWidthMeters = 3.0;
                 const statueRealHeight  = 3.5;
                 const scaleFactor = (statueRealHeight / Math.max(size.x, size.y, size.z)) * targetWidthMeters;
                 wrapper.scale.setScalar(scaleFactor);
