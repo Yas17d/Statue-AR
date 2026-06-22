@@ -129,7 +129,6 @@
 
         const showMsg = t => { msgEl.textContent = t; };
 
-        // ── Initialisation Three.js + MindAR ─────────────────────────
         function initAR() {
             mindarTarget = new MindARThree({
                 container: arContainer,
@@ -156,7 +155,6 @@
             anchor.onTargetFound = () => { if (currentMode === 'scan') showMsg('✅ Cible trouvée !'); };
             anchor.onTargetLost  = () => { if (currentMode === 'scan') showMsg('🔍 Cherche la cible...'); };
 
-            // Chargement GLB
             const draco = new DRACOLoader();
             draco.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
             const loader = new GLTFLoader();
@@ -165,27 +163,23 @@
             loader.load('./Statue25.glb', (gltf) => {
                 const model = gltf.scene;
 
-                // ── Centrage précis ──────────────────────────────────
                 const box    = new THREE.Box3().setFromObject(model);
                 const center = box.getCenter(new THREE.Vector3());
                 const size   = box.getSize(new THREE.Vector3());
-                model.position.sub(center); // recentrer sur l'origine
+                model.position.sub(center); 
 
                 const wrapper = new THREE.Group();
                 wrapper.add(model);
 
-                // ── Scale : 1 unité = largeur de l'image cible ───────
                 const maxDim = Math.max(size.x, size.y, size.z);
                 wrapper.scale.setScalar(0.8 / maxDim);
 
-                // ── Correction de l'orientation (Tête EN HAUT + De face) ──────
-                // 1. Redresser la tête : On passe d'un export Z-haut (logiciel) à Y-haut (Web)
-                wrapper.rotation.x = Math.PI / 2; // +90° sur X pour redresser (au lieu de -90)
+                // ── CORRECTION RADICALE DE L'ORIENTATION ──
+                wrapper.rotation.x = Math.PI / 2;  // Redressement initial
+                wrapper.rotation.y = Math.PI;       // Assure qu'elle fait face à la caméra
+                wrapper.rotation.z = Math.PI;       // Pivot à 180° : Remet enfin la tête vers le haut !
 
-                // 2. FAIRE PIVOTER la statue pour qu'elle nous fasse face (180° sur Y)
-                wrapper.rotation.y = Math.PI;
-
-                // Lever légèrement la statue au-dessus du plan de la cible
+                // Lever la statue pour qu'elle repose sur la base réelle calculée
                 wrapper.position.y = size.y * (0.8 / maxDim) * 0.5;
 
                 statueModel = wrapper;
@@ -213,17 +207,14 @@
         function onTap(e) {
             if (currentMode !== 'touch' || !statueModel) return;
 
-            // Vecteur "devant la caméra" dans l'espace monde
             const camDir = new THREE.Vector3(0, 0, -1);
             camDir.applyQuaternion(camera.quaternion);
 
-            // Distance de placement (en unités Three.js / mètres approx)
             const distance = 2;
             const pos = camera.position.clone().addScaledVector(camDir, distance);
 
             manualGroup.position.copy(pos);
 
-            // Orienter la statue pour qu'elle fasse face à la caméra (axe Y seul)
             const lookTarget = new THREE.Vector3(
                 camera.position.x,
                 manualGroup.position.y,
@@ -236,7 +227,6 @@
             showMsg('📍 Touchez à nouveau pour déplacer');
         }
 
-        // ── Lancer l'AR ───────────────────────────────────────────────
         async function launchAR(mode) {
             selectionScreen.style.display = 'none';
             arContainer.style.display     = 'block';
@@ -268,7 +258,6 @@
             }
         }
 
-        // ── Switcher de mode ──────────────────────────────────────────
         function setMode(mode) {
             currentMode = mode;
             updateBtns();
@@ -296,7 +285,6 @@
             btnTouch.classList.toggle('active', currentMode === 'touch');
         }
 
-        // ── Retour ────────────────────────────────────────────────────
         btnBack.addEventListener('click', () => {
             selectionScreen.style.display = 'flex';
             arContainer.style.display     = 'none';
